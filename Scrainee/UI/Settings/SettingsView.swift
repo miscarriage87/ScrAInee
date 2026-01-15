@@ -1,0 +1,565 @@
+import SwiftUI
+import KeychainAccess
+
+struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        TabView {
+            GeneralSettingsView()
+                .tabItem {
+                    Label("Allgemein", systemImage: "gear")
+                }
+
+            CaptureSettingsView()
+                .tabItem {
+                    Label("Aufnahme", systemImage: "camera")
+                }
+
+            AISettingsView()
+                .tabItem {
+                    Label("KI", systemImage: "brain")
+                }
+
+            IntegrationSettingsView()
+                .tabItem {
+                    Label("Integrationen", systemImage: "link")
+                }
+
+            StorageSettingsView()
+                .tabItem {
+                    Label("Speicher", systemImage: "internaldrive")
+                }
+        }
+        .frame(width: 500, height: 400)
+    }
+}
+
+// MARK: - General Settings
+
+struct GeneralSettingsView: View {
+    @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("autoStartCapture") private var autoStartCapture = true
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Beim Anmelden starten", isOn: $launchAtLogin)
+                Toggle("Aufnahme automatisch starten", isOn: $autoStartCapture)
+                    .help("Startet die Bildschirmaufnahme automatisch beim Öffnen der App")
+            } header: {
+                Text("Start")
+            }
+
+            Section {
+                PermissionStatusView()
+            } header: {
+                Text("Berechtigungen")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+}
+
+// MARK: - Permission Status View
+
+struct PermissionStatusView: View {
+    @State private var screenCaptureGranted = false
+    @State private var accessibilityGranted = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            PermissionRow(
+                title: "Bildschirmaufnahme",
+                granted: screenCaptureGranted,
+                action: { PermissionManager.shared.openScreenCapturePreferences() }
+            )
+
+            PermissionRow(
+                title: "Bedienungshilfen",
+                granted: accessibilityGranted,
+                action: { PermissionManager.shared.requestAccessibilityPermission() }
+            )
+        }
+        .task {
+            await checkPermissions()
+        }
+    }
+
+    private func checkPermissions() async {
+        screenCaptureGranted = await PermissionManager.shared.checkScreenCapturePermission()
+        accessibilityGranted = PermissionManager.shared.checkAccessibilityPermission()
+    }
+}
+
+struct PermissionRow: View {
+    let title: String
+    let granted: Bool
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(granted ? .green : .red)
+
+            Text(title)
+
+            Spacer()
+
+            if !granted {
+                Button("Berechtigen") {
+                    action()
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+// MARK: - Capture Settings
+
+struct CaptureSettingsView: View {
+    @AppStorage("captureInterval") private var captureInterval = 3
+    @AppStorage("heicQuality") private var heicQuality = 0.6
+    @AppStorage("ocrEnabled") private var ocrEnabled = true
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Aufnahme-Intervall", selection: $captureInterval) {
+                    Text("1 Sekunde").tag(1)
+                    Text("2 Sekunden").tag(2)
+                    Text("3 Sekunden (Standard)").tag(3)
+                    Text("5 Sekunden").tag(5)
+                    Text("10 Sekunden").tag(10)
+                }
+
+                VStack(alignment: .leading) {
+                    Text("Bildqualitaet: \(Int(heicQuality * 100))%")
+                    Slider(value: $heicQuality, in: 0.3...1.0, step: 0.1)
+                }
+
+                Toggle("OCR aktivieren", isOn: $ocrEnabled)
+            } header: {
+                Text("Screenshot-Einstellungen")
+            } footer: {
+                Text("Hoehere Qualitaet = mehr Speicherverbrauch")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+}
+
+// MARK: - AI Settings
+
+struct AISettingsView: View {
+    @State private var claudeAPIKey = ""
+    @State private var isAPIKeyVisible = false
+    @State private var isSaving = false
+    @State private var isTesting = false
+    @State private var statusMessage: String?
+    @State private var apiKeyStatus: APIKeyStatus = .unknown
+
+    private let keychain = Keychain(service: "com.cpohl.scrainee")
+
+    var body: some View {
+        Form {
+            Section {
+                // API Key Input with status indicator
+                HStack {
+                    // Status indicator
+                    apiKeyStatusIcon
+
+                    if isAPIKeyVisible {
+                        if #available(macOS 14.0, *) {
+                            TextField("sk-ant-...", text: $claudeAPIKey)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: claudeAPIKey) { _, _ in
+                                    validateKeyFormat()
+                                }
+                        } else {
+                            // Fallback on earlier versions
+                        }
+                    } else {
+                        if #available(macOS 14.0, *) {
+                            SecureField("sk-ant-...", text: $claudeAPIKey)
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: claudeAPIKey) { _, _ in
+                                    validateKeyFormat()
+                                }
+                        } else {
+                            // Fallback on earlier versions
+                        }
+                    }
+
+                    Button(action: { isAPIKeyVisible.toggle() }) {
+                        Image(systemName: isAPIKeyVisible ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.borderless)
+                }
+
+                // Action buttons
+                HStack {
+                    Button("Speichern") {
+                        saveAPIKey()
+                    }
+                    .disabled(claudeAPIKey.isEmpty || isSaving)
+
+                    Button("Testen") {
+                        Task { await testAPIKey() }
+                    }
+                    .disabled(claudeAPIKey.isEmpty || isTesting)
+                    .buttonStyle(.borderedProminent)
+
+                    if isTesting {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    }
+
+                    Button("Loeschen") {
+                        deleteAPIKey()
+                    }
+                    .foregroundColor(.red)
+                }
+
+                // Status message
+                if let message = statusMessage {
+                    HStack {
+                        Image(systemName: apiKeyStatus.icon)
+                            .foregroundColor(apiKeyStatus.color)
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(apiKeyStatus.color)
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("Claude API Key")
+                    Spacer()
+                    apiKeyStatusBadge
+                }
+            } footer: {
+                Text("Hol dir deinen API Key von console.anthropic.com")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section {
+                Link("Anthropic Console", destination: URL(string: "https://console.anthropic.com/")!)
+                Link("API Dokumentation", destination: URL(string: "https://docs.anthropic.com/")!)
+            } header: {
+                Text("Links")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .onAppear {
+            loadAPIKey()
+        }
+    }
+
+    // MARK: - Status Views
+
+    @ViewBuilder
+    private var apiKeyStatusIcon: some View {
+        Image(systemName: apiKeyStatus.icon)
+            .foregroundColor(apiKeyStatus.color)
+            .font(.title3)
+    }
+
+    @ViewBuilder
+    private var apiKeyStatusBadge: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(apiKeyStatus.color)
+                .frame(width: 8, height: 8)
+            Text(apiKeyStatus.label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    // MARK: - API Key Management
+
+    private func loadAPIKey() {
+        claudeAPIKey = (try? keychain.get("claude_api_key")) ?? ""
+        if !claudeAPIKey.isEmpty {
+            validateKeyFormat()
+        }
+    }
+
+    private func validateKeyFormat() {
+        if claudeAPIKey.isEmpty {
+            apiKeyStatus = .unknown
+        } else if !claudeAPIKey.hasPrefix("sk-ant-") {
+            apiKeyStatus = .invalidFormat
+            statusMessage = "API Key muss mit 'sk-ant-' beginnen"
+        } else if claudeAPIKey.count < 20 {
+            apiKeyStatus = .invalidFormat
+            statusMessage = "API Key ist zu kurz"
+        } else {
+            apiKeyStatus = .formatValid
+            statusMessage = nil
+        }
+    }
+
+    private func saveAPIKey() {
+        isSaving = true
+        do {
+            try keychain.set(claudeAPIKey, key: "claude_api_key")
+            statusMessage = "Gespeichert"
+            apiKeyStatus = .saved
+        } catch {
+            statusMessage = "Fehler: \(error.localizedDescription)"
+            apiKeyStatus = .error
+        }
+        isSaving = false
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            if apiKeyStatus == .saved {
+                validateKeyFormat()
+            }
+        }
+    }
+
+    private func testAPIKey() async {
+        isTesting = true
+        apiKeyStatus = .testing
+        statusMessage = "Teste Verbindung..."
+
+        do {
+            let client = ClaudeAPIClient()
+            try await client.testConnection()
+            apiKeyStatus = .valid
+            statusMessage = "API Key ist gueltig und aktiv!"
+        } catch let error as ClaudeAPIError {
+            apiKeyStatus = .invalid
+            switch error {
+            case .invalidAPIKey:
+                statusMessage = "Ungueltiger API Key"
+            case .rateLimited:
+                statusMessage = "Rate Limit erreicht - Key ist aber gueltig"
+                apiKeyStatus = .valid
+            case .serverError(let message):
+                statusMessage = "Server-Fehler: \(message)"
+            default:
+                statusMessage = "Fehler: \(error.localizedDescription)"
+            }
+        } catch {
+            apiKeyStatus = .error
+            statusMessage = "Verbindungsfehler: \(error.localizedDescription)"
+        }
+
+        isTesting = false
+    }
+
+    private func deleteAPIKey() {
+        try? keychain.remove("claude_api_key")
+        claudeAPIKey = ""
+        apiKeyStatus = .unknown
+        statusMessage = "API Key geloescht"
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            statusMessage = nil
+        }
+    }
+}
+
+// MARK: - API Key Status
+
+enum APIKeyStatus {
+    case unknown
+    case invalidFormat
+    case formatValid
+    case testing
+    case valid
+    case invalid
+    case saved
+    case error
+
+    var icon: String {
+        switch self {
+        case .unknown: return "questionmark.circle"
+        case .invalidFormat: return "exclamationmark.triangle.fill"
+        case .formatValid: return "checkmark.circle"
+        case .testing: return "arrow.triangle.2.circlepath"
+        case .valid: return "checkmark.seal.fill"
+        case .invalid: return "xmark.seal.fill"
+        case .saved: return "checkmark.circle.fill"
+        case .error: return "exclamationmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .unknown: return .secondary
+        case .invalidFormat: return .orange
+        case .formatValid: return .blue
+        case .testing: return .blue
+        case .valid: return .green
+        case .invalid: return .red
+        case .saved: return .green
+        case .error: return .red
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .unknown: return "Nicht konfiguriert"
+        case .invalidFormat: return "Ungueltiges Format"
+        case .formatValid: return "Format OK"
+        case .testing: return "Teste..."
+        case .valid: return "Aktiv"
+        case .invalid: return "Ungueltig"
+        case .saved: return "Gespeichert"
+        case .error: return "Fehler"
+        }
+    }
+}
+
+// MARK: - Integration Settings
+
+struct IntegrationSettingsView: View {
+    @AppStorage("meetingDetectionEnabled") private var meetingDetectionEnabled = true
+    @State private var notionAPIKey = ""
+    @State private var notionDatabaseId = ""
+
+    private let keychain = Keychain(service: "com.cpohl.scrainee")
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Meeting-Erkennung aktivieren", isOn: $meetingDetectionEnabled)
+
+                Text("Unterstuetzte Apps: Microsoft Teams, Zoom, Webex, Google Meet")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Meeting-Erkennung")
+            }
+
+            Section {
+                SecureField("Notion API Key", text: $notionAPIKey)
+                    .textFieldStyle(.roundedBorder)
+
+                TextField("Database ID", text: $notionDatabaseId)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Notion Einstellungen speichern") {
+                    saveNotionSettings()
+                }
+            } header: {
+                Text("Notion Integration")
+            } footer: {
+                Text("Erstelle eine Integration unter notion.so/my-integrations")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .onAppear {
+            loadNotionSettings()
+        }
+    }
+
+    private func loadNotionSettings() {
+        notionAPIKey = (try? keychain.get("notion_api_key")) ?? ""
+        notionDatabaseId = (try? keychain.get("notion_database_id")) ?? ""
+    }
+
+    private func saveNotionSettings() {
+        try? keychain.set(notionAPIKey, key: "notion_api_key")
+        try? keychain.set(notionDatabaseId, key: "notion_database_id")
+    }
+}
+
+// MARK: - Storage Settings
+
+struct StorageSettingsView: View {
+    @AppStorage("retentionDays") private var retentionDays = 30
+    @State private var storageUsed = "Berechne..."
+    @State private var screenshotCount = 0
+
+    var body: some View {
+        Form {
+            Section {
+                HStack {
+                    Text("Speicherverbrauch")
+                    Spacer()
+                    Text(storageUsed)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Screenshots")
+                    Spacer()
+                    Text("\(screenshotCount)")
+                        .foregroundColor(.secondary)
+                }
+
+                Button("Im Finder anzeigen") {
+                    // Use activateFileViewerSelecting to ensure Finder opens (not third-party file managers)
+                    NSWorkspace.shared.activateFileViewerSelecting([StorageManager.shared.applicationSupportDirectory])
+                }
+            } header: {
+                Text("Speicher")
+            }
+
+            Section {
+                Picker("Aufbewahrungsdauer", selection: $retentionDays) {
+                    Text("7 Tage").tag(7)
+                    Text("14 Tage").tag(14)
+                    Text("30 Tage (Standard)").tag(30)
+                    Text("60 Tage").tag(60)
+                    Text("90 Tage").tag(90)
+                    Text("Unbegrenzt").tag(0)
+                }
+
+                Button("Jetzt aufraeumen") {
+                    Task {
+                        await RetentionPolicy.shared.performCleanup()
+                        await refreshStats()
+                    }
+                }
+            } header: {
+                Text("Aufbewahrung")
+            } footer: {
+                if retentionDays > 0 {
+                    Text("Screenshots aelter als \(retentionDays) Tage werden automatisch geloescht")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Section {
+                Button("Alle Screenshots loeschen", role: .destructive) {
+                    // Show confirmation dialog
+                }
+            } header: {
+                Text("Gefahrenzone")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .task {
+            await refreshStats()
+        }
+    }
+
+    private func refreshStats() async {
+        storageUsed = StorageManager.shared.formattedStorageUsed
+        screenshotCount = (try? await DatabaseManager.shared.getScreenshotCount()) ?? 0
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    SettingsView()
+        .environmentObject(AppState.shared)
+}

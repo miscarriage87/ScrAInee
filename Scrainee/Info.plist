@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Scrainee</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>26.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSSupportsAutomaticGraphicsSwitching</key>
+	<true/>
+
+	<!-- Privacy Usage Descriptions -->
+	<key>NSScreenRecordingUsageDescription</key>
+	<string>Scrainee benoetigt die Berechtigung fuer Bildschirmaufnahmen, um automatisch Screenshots waehrend Meetings zu erstellen und Ihnen dabei zu helfen, wichtige Informationen zu erfassen und zusammenzufassen.</string>
+
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Scrainee benoetigt Bedienungshilfen-Zugriff, um Fenster-Titel zu erfassen und globale Tastaturkuerzel zu unterstuetzen.</string>
+
+	<key>NSSystemAdministrationUsageDescription</key>
+	<string>Scrainee benoetigt Administratorrechte, um Informationen ueber aktive Anwendungen zu erfassen und Meeting-Aktivitaeten zu erkennen.</string>
+
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Scrainee verwendet Apple Events, um Informationen ueber aktive Anwendungen zu erfassen und festzustellen, wann Meetings aktiv sind.</string>
+
+	<!-- App Category -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+
+	<!-- Document Types (for screenshots) -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>png</string>
+				<string>heic</string>
+				<string>jpeg</string>
+				<string>jpg</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string></string>
+			<key>CFBundleTypeName</key>
+			<string>Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+		</dict>
+	</array>
+</dict>
+</plist>
