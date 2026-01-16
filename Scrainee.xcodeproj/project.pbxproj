@@ -23,6 +23,8 @@
 		CFA213BB610DC50DE2A17E05 /* HashTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 337D98DA96F0B5985F796623 /* HashTrackerTests.swift */; };
 		DB10401C6E505C5304129286 /* DisplayManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96B4AB2382429ED2B525F39D /* DisplayManagerTests.swift */; };
 		DD9AAEE792339C59B4BD4B3B /* CaptureToStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C16A44D9872A2907C6DED7EF /* CaptureToStorageTests.swift */; };
+		E8405AD12F1AB0A300BA9CFE /* NotionExportPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8405ACF2F1AB0A300BA9CFE /* NotionExportPreviewView.swift */; };
+		E8405AD22F1AB0A300BA9CFE /* SummaryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8405AD02F1AB0A300BA9CFE /* SummaryListView.swift */; };
 		E84DDD872F19AB3400D22D09 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = E84DDD862F19AB3400D22D09 /* WhisperKit */; };
 		E84DDD892F19AB3400D22D09 /* whisperkit-cli in Frameworks */ = {isa = PBXBuildFile; productRef = E84DDD882F19AB3400D22D09 /* whisperkit-cli */; };
 		E86403FA2F1A7E8800C1584C /* ExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E86403D02F1A7E8800C1584C /* ExportManager.swift */; };
@@ -106,6 +108,8 @@
 		C16A44D9872A2907C6DED7EF /* CaptureToStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureToStorageTests.swift; sourceTree = "<group>"; };
 		C76A995BE9A698C42AED294E /* ImageGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageGenerator.swift; sourceTree = "<group>"; };
 		D0CAC52055E68F78743EC87B /* StorageE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageE2ETests.swift; sourceTree = "<group>"; };
+		E8405ACF2F1AB0A300BA9CFE /* NotionExportPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionExportPreviewView.swift; sourceTree = "<group>"; };
+		E8405AD02F1AB0A300BA9CFE /* SummaryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryListView.swift; sourceTree = "<group>"; };
 		E86403A42F1A7E8800C1584C /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		E86403A52F1A7E8800C1584C /* ScraineeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScraineeApp.swift; sourceTree = "<group>"; };
 		E86403A72F1A7E8800C1584C /* ClaudeAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIClient.swift; sourceTree = "<group>"; };
@@ -480,6 +484,8 @@
 		E86403ED2F1A7E8800C1584C /* Summary */ = {
 			isa = PBXGroup;
 			children = (
+				E8405ACF2F1AB0A300BA9CFE /* NotionExportPreviewView.swift */,
+				E8405AD02F1AB0A300BA9CFE /* SummaryListView.swift */,
 				E86403EC2F1A7E8800C1584C /* SummaryRequestView.swift */,
 			);
 			path = Summary;
@@ -685,6 +691,8 @@
 				E86404222F1A7E8800C1584C /* NotionClient.swift in Sources */,
 				E86404232F1A7E8800C1584C /* ThumbnailCache.swift in Sources */,
 				E86404242F1A7E8800C1584C /* DisplayManager.swift in Sources */,
+				E8405AD12F1AB0A300BA9CFE /* NotionExportPreviewView.swift in Sources */,
+				E8405AD22F1AB0A300BA9CFE /* SummaryListView.swift in Sources */,
 				E86404252F1A7E8800C1584C /* ActionItem.swift in Sources */,
 				E86404262F1A7E8800C1584C /* ErrorManager.swift in Sources */,
 				E86404272F1A7E8800C1584C /* ContextOverlayView.swift in Sources */,

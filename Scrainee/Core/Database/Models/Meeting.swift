@@ -185,7 +185,8 @@ extension Meeting {
         try db.create(index: "idx_meetings_time", on: databaseTableName, columns: ["startTime"], ifNotExists: true)
         try db.create(index: "idx_meetings_app", on: databaseTableName, columns: ["appBundleId"], ifNotExists: true)
         try db.create(index: "idx_meetings_status", on: databaseTableName, columns: ["status"], ifNotExists: true)
-        try db.create(index: "idx_meetings_transcription", on: databaseTableName, columns: ["transcriptionStatus"], ifNotExists: true)
+        // Note: idx_meetings_transcription index is created in addTranscriptionColumns migration
+        // to handle existing databases without the transcriptionStatus column
     }
 
     /// Adds new columns for transcription support (migration)
