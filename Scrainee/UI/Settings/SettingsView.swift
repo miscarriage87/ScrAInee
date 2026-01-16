@@ -36,7 +36,7 @@ struct SettingsView: View {
                     Label("Speicher", systemImage: "internaldrive")
                 }
         }
-        .frame(width: 500, height: 450)
+        .frame(width: 550, height: 550)
     }
 }
 
@@ -612,8 +612,15 @@ struct IntegrationSettingsView: View {
     @AppStorage("meetingDetectionEnabled") private var meetingDetectionEnabled = true
     @State private var notionAPIKey = ""
     @State private var notionDatabaseId = ""
+    @State private var notionTestStatus: NotionTestStatus = .idle
+    @State private var notionStatusMessage = ""
+    @State private var validationError = ""
 
     private let keychain = Keychain(service: "com.cpohl.scrainee")
+
+    enum NotionTestStatus {
+        case idle, testing, success, error
+    }
 
     var body: some View {
         Form {
@@ -630,25 +637,89 @@ struct IntegrationSettingsView: View {
             Section {
                 SecureField("Notion API Key", text: $notionAPIKey)
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: notionAPIKey) {
+                        validateInputs()
+                        notionTestStatus = .idle
+                    }
 
                 TextField("Database ID", text: $notionDatabaseId)
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: notionDatabaseId) {
+                        validateInputs()
+                        notionTestStatus = .idle
+                    }
 
-                Button("Notion Einstellungen speichern") {
-                    saveNotionSettings()
+                // Validierungsfehler anzeigen
+                if !validationError.isEmpty {
+                    Text(validationError)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                HStack {
+                    Button("Speichern") {
+                        saveNotionSettings()
+                    }
+                    .disabled(!validationError.isEmpty && !notionAPIKey.isEmpty)
+
+                    Button("Verbindung testen") {
+                        Task { await testNotionConnection() }
+                    }
+                    .disabled(notionAPIKey.isEmpty || notionDatabaseId.isEmpty || notionTestStatus == .testing)
+
+                    Spacer()
+
+                    // Status-Anzeige
+                    notionStatusView
                 }
             } header: {
                 Text("Notion Integration")
             } footer: {
-                Text("Erstelle eine Integration unter notion.so/my-integrations")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Erstelle eine Integration unter notion.so/my-integrations")
+                    Text("Die Database ID findest du in der URL deiner Notion-Datenbank")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
         }
         .formStyle(.grouped)
         .padding()
         .onAppear {
             loadNotionSettings()
+        }
+    }
+
+    @ViewBuilder
+    private var notionStatusView: some View {
+        switch notionTestStatus {
+        case .idle:
+            EmptyView()
+        case .testing:
+            HStack(spacing: 4) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Teste...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        case .success:
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text(notionStatusMessage)
+                    .font(.caption)
+                    .foregroundColor(.green)
+            }
+        case .error:
+            HStack(spacing: 4) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red)
+                Text(notionStatusMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .lineLimit(2)
+            }
         }
     }
 
@@ -660,6 +731,61 @@ struct IntegrationSettingsView: View {
     private func saveNotionSettings() {
         try? keychain.set(notionAPIKey, key: "notion_api_key")
         try? keychain.set(notionDatabaseId, key: "notion_database_id")
+        notionStatusMessage = "Gespeichert"
+        notionTestStatus = .success
+
+        // Status nach 2 Sekunden zurücksetzen
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            if notionStatusMessage == "Gespeichert" {
+                notionTestStatus = .idle
+            }
+        }
+    }
+
+    private func validateInputs() {
+        validationError = ""
+
+        if !notionAPIKey.isEmpty {
+            let keyResult = SettingsValidator.validateNotionAPIKey(notionAPIKey)
+            if case .invalid(let message) = keyResult {
+                validationError = message
+                return
+            }
+        }
+
+        if !notionDatabaseId.isEmpty {
+            let dbResult = SettingsValidator.validateNotionDatabaseId(notionDatabaseId)
+            if case .invalid(let message) = dbResult {
+                validationError = message
+                return
+            }
+        }
+    }
+
+    private func testNotionConnection() async {
+        notionTestStatus = .testing
+        notionStatusMessage = ""
+
+        // Erst speichern, damit der NotionClient die Credentials laden kann
+        try? keychain.set(notionAPIKey, key: "notion_api_key")
+        try? keychain.set(notionDatabaseId, key: "notion_database_id")
+
+        let client = NotionClient()
+
+        do {
+            let success = try await client.testConnection()
+            if success {
+                notionTestStatus = .success
+                notionStatusMessage = "Verbindung erfolgreich!"
+            } else {
+                notionTestStatus = .error
+                notionStatusMessage = "Verbindung fehlgeschlagen"
+            }
+        } catch {
+            notionTestStatus = .error
+            notionStatusMessage = error.localizedDescription
+        }
     }
 }
 

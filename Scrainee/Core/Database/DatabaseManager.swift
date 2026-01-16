@@ -651,9 +651,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            var record = segment
-            try record.insert(db)
-            guard let id = record.id else {
+            let inserted = try segment.inserted(db)
+            guard let id = inserted.id else {
                 throw DatabaseError.queryFailed("Failed to get inserted segment ID")
             }
             return id
@@ -815,9 +814,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            var record = actionItem
-            try record.insert(db)
-            guard let id = record.id else {
+            let inserted = try actionItem.inserted(db)
+            guard let id = inserted.id else {
                 throw DatabaseError.queryFailed("Failed to get inserted action item ID")
             }
             return id
@@ -829,8 +827,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         try await db.write { db in
-            for var item in actionItems {
-                try item.insert(db)
+            for item in actionItems {
+                _ = try item.inserted(db)
             }
         }
     }

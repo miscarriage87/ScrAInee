@@ -90,11 +90,9 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
 
         // Set up callback for audio chunks
         await audioCapture.setOnChunkCaptured { [weak self] chunk in
-            await MainActor.run {
-                guard let self = self else { return }
-                Task {
-                    await self.processAudioChunk(chunk)
-                }
+            guard let coordinator = self else { return }
+            Task { @MainActor in
+                await coordinator.processAudioChunk(chunk)
             }
         }
 
@@ -191,7 +189,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
 
     /// Processes an audio chunk for real-time transcription
     func processAudioChunk(_ chunk: AudioChunk) async {
-        guard isTranscribing, let meetingId = currentMeetingId else { return }
+        guard isTranscribing, let _ = currentMeetingId else { return }
 
         do {
             // Transcribe the chunk
@@ -256,7 +254,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
                 guard let self = self,
                       self.autoTranscribe,
                       self.whisperModelDownloaded,
-                      let session = notification.object as? MeetingSession else { return }
+                      let _ = notification.object as? MeetingSession else { return }
 
                 Task { @MainActor in
                     // Get the meeting from database

@@ -4,6 +4,9 @@ import SwiftUI
 struct MeetingMinutesView: View {
     @StateObject private var viewModel: MeetingMinutesViewModel
     @ObservedObject private var coordinator = MeetingTranscriptionCoordinator.shared
+    @State private var showExportSuccess = false
+    @State private var exportedNotionUrl: String?
+    @State private var isExporting = false
 
     init(meeting: Meeting? = nil) {
         _viewModel = StateObject(wrappedValue: MeetingMinutesViewModel(meeting: meeting))
@@ -40,9 +43,29 @@ struct MeetingMinutesView: View {
                     Button("Als Markdown exportieren") {
                         exportAsMarkdown()
                     }
-                    Button("Zu Notion exportieren") {
-                        exportToNotion()
+
+                    Divider()
+
+                    if let url = viewModel.notionPageUrl {
+                        Button("In Notion öffnen") {
+                            if let notionUrl = URL(string: url) {
+                                NSWorkspace.shared.open(notionUrl)
+                            }
+                        }
                     }
+
+                    Button {
+                        Task { await exportToNotion() }
+                    } label: {
+                        if isExporting {
+                            Label("Exportiere...", systemImage: "arrow.triangle.2.circlepath")
+                        } else if viewModel.notionPageUrl != nil {
+                            Label("Erneut zu Notion exportieren", systemImage: "arrow.up.doc")
+                        } else {
+                            Label("Zu Notion exportieren", systemImage: "arrow.up.doc")
+                        }
+                    }
+                    .disabled(!viewModel.isNotionConfigured || viewModel.minutes == nil || isExporting)
                 } label: {
                     Label("Exportieren", systemImage: "square.and.arrow.up")
                 }
@@ -60,6 +83,16 @@ struct MeetingMinutesView: View {
             Button("OK") { viewModel.error = nil }
         } message: {
             Text(viewModel.error ?? "")
+        }
+        .alert("Export erfolgreich", isPresented: $showExportSuccess) {
+            Button("In Notion öffnen") {
+                if let urlString = exportedNotionUrl, let url = URL(string: urlString) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Die Meeting-Minutes wurden erfolgreich nach Notion exportiert.")
         }
     }
 
@@ -324,8 +357,13 @@ struct MeetingMinutesView: View {
         // Export implementation
     }
 
-    private func exportToNotion() {
-        // Notion export implementation
+    private func exportToNotion() async {
+        isExporting = true
+        if let url = await viewModel.exportToNotion() {
+            exportedNotionUrl = url
+            showExportSuccess = true
+        }
+        isExporting = false
     }
 }
 

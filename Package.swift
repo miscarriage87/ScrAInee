@@ -12,7 +12,10 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.24.0"),
         .package(url: "https://github.com/kishikawakatsumi/KeychainAccess.git", from: "4.2.2"),
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0")
+        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0"),
+        // Explizite transitive Dependencies für WhisperKit (Swift 6 Kompatibilität)
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
+        .package(url: "https://github.com/huggingface/swift-transformers.git", from: "0.1.12")
     ],
     targets: [
         .executableTarget(

@@ -72,7 +72,7 @@ struct ScreenshotTimelineView: View {
             Spacer()
 
             // Current screenshot info
-            if let screenshot = viewModel.currentScreenshot {
+            if viewModel.currentScreenshot != nil {
                 HStack(spacing: 8) {
                     // App icon placeholder
                     Image(systemName: "app.fill")

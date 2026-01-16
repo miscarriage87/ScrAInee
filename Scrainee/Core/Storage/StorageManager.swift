@@ -7,9 +7,15 @@ final class StorageManager: @unchecked Sendable {
     // MARK: - Directories
 
     /// Main application support directory
+    /// Uses a fixed path to ensure consistency between sandboxed and non-sandboxed runs
     var applicationSupportDirectory: URL {
-        let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let appSupport = paths.first!.appendingPathComponent("Scrainee", isDirectory: true)
+        // IMPORTANT: Use fixed path to avoid Sandbox container issues
+        // This ensures Xcode and Terminal builds use the same database
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let appSupport = homeDir
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+            .appendingPathComponent("Scrainee", isDirectory: true)
         ensureDirectoryExists(appSupport)
         return appSupport
     }

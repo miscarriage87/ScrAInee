@@ -171,6 +171,67 @@ final class MeetingMinutesViewModel: ObservableObject {
         isLoading = false
     }
 
+    // MARK: - Notion Export
+
+    /// Exports meeting minutes to Notion and returns the page URL
+    func exportToNotion() async -> String? {
+        guard let meeting = meeting else {
+            error = "Kein Meeting ausgewählt"
+            return nil
+        }
+
+        let client = NotionClient()
+        guard client.isConfigured else {
+            error = "Notion nicht konfiguriert. Bitte API-Key und Database-ID in den Einstellungen eingeben."
+            return nil
+        }
+
+        guard let mins = minutes else {
+            error = "Keine Meeting-Minutes vorhanden. Bitte zuerst generieren."
+            return nil
+        }
+
+        isLoading = true
+
+        do {
+            let page = try await client.exportMeetingWithMinutes(
+                meeting: meeting,
+                minutes: mins,
+                segments: segments,
+                actionItems: actionItems
+            )
+
+            // Update meeting record with Notion link
+            if let meetingId = meeting.id {
+                try await databaseManager.updateMeetingNotionLink(
+                    meetingId: meetingId,
+                    pageId: page.id,
+                    pageUrl: page.url
+                )
+                // Update local meeting object
+                self.meeting?.notionPageId = page.id
+                self.meeting?.notionPageUrl = page.url
+            }
+
+            isLoading = false
+            return page.url
+        } catch {
+            self.error = "Notion-Export fehlgeschlagen: \(error.localizedDescription)"
+            isLoading = false
+            return nil
+        }
+    }
+
+    /// Checks if Notion is configured
+    var isNotionConfigured: Bool {
+        NotionClient().isConfigured
+    }
+
+    /// Returns the Notion page URL if already exported
+    var notionPageUrl: String? {
+        meeting?.notionPageUrl
+    }
+
     // MARK: - Private Methods
 
     private func setupBindings() {
