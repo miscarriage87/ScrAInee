@@ -91,7 +91,12 @@ final class AppState: ObservableObject {
 
         // Auto-start capture wenn aktiviert
         if autoStartCapture {
+            print("[DEBUG] Auto-Start aktiviert, starte Aufnahme...")
+            // Kurze Verzögerung für System-Bereitschaft
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 Sekunden
             await startCapture()
+        } else {
+            print("[DEBUG] Auto-Start deaktiviert")
         }
     }
 
@@ -135,19 +140,23 @@ final class AppState: ObservableObject {
     }
 
     func startCapture() async {
-        guard !isCapturing else { return }
+        guard !isCapturing else {
+            print("[DEBUG] Aufnahme bereits aktiv")
+            return
+        }
 
         // Check permission first
         let permissionManager = PermissionManager.shared
         var hasPermission = await permissionManager.checkScreenCapturePermission()
-        
+
         if !hasPermission {
             // Try to request permission
             hasPermission = await permissionManager.requestScreenCapturePermission()
         }
-        
+
         guard hasPermission else {
             showPermissionAlert = true
+            print("[DEBUG] Auto-Start fehlgeschlagen: Keine Berechtigung")
             return
         }
 
@@ -157,8 +166,10 @@ final class AppState: ObservableObject {
             screenshotCount = 0
             // Clear permission alert if capture starts successfully
             showPermissionAlert = false
+            print("[DEBUG] Aufnahme erfolgreich gestartet")
         } catch {
             errorMessage = "Aufnahme konnte nicht gestartet werden: \(error.localizedDescription)"
+            print("[ERROR] Aufnahme-Start fehlgeschlagen: \(error)")
         }
     }
 
@@ -258,6 +269,8 @@ final class AppState: ObservableObject {
                 notionPageId: nil,
                 notionPageUrl: nil,
                 status: .active,
+                transcriptionStatus: .notStarted,
+                audioFilePath: nil,
                 createdAt: nil
             )
             currentMeetingDbId = try await DatabaseManager.shared.insert(dbMeeting)
@@ -358,6 +371,11 @@ extension AppState: ScreenCaptureManagerDelegate {
             totalScreenshots += 1
             lastCaptureTime = screenshot.timestamp
             currentApp = screenshot.appName ?? ""
+
+            // Storage-Stats alle 10 Screenshots aktualisieren für Performance
+            if screenshotCount % 10 == 0 {
+                storageUsed = StorageManager.shared.formattedStorageUsed
+            }
         }
     }
 

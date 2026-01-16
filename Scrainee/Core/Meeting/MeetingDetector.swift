@@ -303,7 +303,8 @@ final class MeetingDetector: ObservableObject {
             appBundleId: session.bundleId,
             appName: session.appName,
             startTime: session.startTime,
-            status: .active
+            status: .active,
+            transcriptionStatus: .notStarted
         )
 
         do {

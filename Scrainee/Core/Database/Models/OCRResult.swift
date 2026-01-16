@@ -99,5 +99,11 @@ extension OCRResult {
                 INSERT INTO ocrFts(rowid, text) VALUES (new.id, new.text);
             END
         """)
+
+        // Migrate existing OCR data to FTS5 (for data inserted before triggers existed)
+        try db.execute(sql: """
+            INSERT OR IGNORE INTO ocrFts(rowid, text)
+            SELECT id, text FROM ocrResults
+        """)
     }
 }

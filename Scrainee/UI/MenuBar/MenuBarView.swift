@@ -37,6 +37,12 @@ struct MenuBarView: View {
         }
         .padding()
         .frame(width: 280)
+        .onAppear {
+            // Aktualisiere Stats wenn das Menu geöffnet wird
+            Task {
+                await appState.refreshStats()
+            }
+        }
     }
 
     // MARK: - Header Section
@@ -172,33 +178,69 @@ struct MenuBarView: View {
 
     // MARK: - Actions Section
 
+    @State private var isAIExpanded = true
+    @State private var isScreenshotsExpanded = true
+    @State private var isMeetingsExpanded = false
+
     private var actionsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Quick Ask - new AI Companion feature
-            Button(action: { openWindow(id: "quickask") }) {
-                Label("Quick Ask", systemImage: "sparkles")
-            }
-            .keyboardShortcut("a", modifiers: [.command, .shift])
+        VStack(alignment: .leading, spacing: 8) {
+            // KI-Assistent Gruppe
+            DisclosureGroup(isExpanded: $isAIExpanded) {
+                VStack(alignment: .leading, spacing: 2) {
+                    MenuButton(title: "Quick Ask", icon: "sparkles", shortcut: "⌘⇧A") {
+                        openWindow(id: "quickask")
+                    }
 
-            Button(action: { openWindow(id: "search") }) {
-                Label("Suchen...", systemImage: "magnifyingglass")
-            }
-            .keyboardShortcut("f", modifiers: [.command, .shift])
+                    MenuButton(title: "Zusammenfassung erstellen", icon: "doc.text", shortcut: "⌘⇧S") {
+                        openWindow(id: "summary")
+                    }
 
-            Button(action: { openWindow(id: "summary") }) {
-                Label("Zusammenfassung erstellen", systemImage: "doc.text")
+                    MenuButton(title: "Alle Zusammenfassungen", icon: "list.bullet.rectangle") {
+                        openWindow(id: "summarylist")
+                    }
+                }
+                .padding(.leading, 8)
+            } label: {
+                Label("KI-Assistent", systemImage: "brain.head.profile")
+                    .font(.caption)
+                    .fontWeight(.semibold)
             }
-            .keyboardShortcut("s", modifiers: [.command, .shift])
 
-            Button(action: { openWindow(id: "gallery") }) {
-                Label("Screenshot Galerie", systemImage: "photo.on.rectangle.angled")
-            }
-            .keyboardShortcut("g", modifiers: [.command, .shift])
+            // Screenshots Gruppe
+            DisclosureGroup(isExpanded: $isScreenshotsExpanded) {
+                VStack(alignment: .leading, spacing: 2) {
+                    MenuButton(title: "Suchen", icon: "magnifyingglass", shortcut: "⌘⇧F") {
+                        openWindow(id: "search")
+                    }
 
-            Button(action: { openWindow(id: "timeline") }) {
-                Label("Timeline", systemImage: "slider.horizontal.below.rectangle")
+                    MenuButton(title: "Galerie", icon: "photo.on.rectangle.angled", shortcut: "⌘⇧G") {
+                        openWindow(id: "gallery")
+                    }
+
+                    MenuButton(title: "Timeline", icon: "slider.horizontal.below.rectangle", shortcut: "⌘⇧T") {
+                        openWindow(id: "timeline")
+                    }
+                }
+                .padding(.leading, 8)
+            } label: {
+                Label("Screenshots", systemImage: "photo.stack")
+                    .font(.caption)
+                    .fontWeight(.semibold)
             }
-            .keyboardShortcut("t", modifiers: [.command, .shift])
+
+            // Meetings Gruppe
+            DisclosureGroup(isExpanded: $isMeetingsExpanded) {
+                VStack(alignment: .leading, spacing: 2) {
+                    MenuButton(title: "Meeting Minutes", icon: "person.3", shortcut: "⌘⇧M") {
+                        openWindow(id: "meetingminutes")
+                    }
+                }
+                .padding(.leading, 8)
+            } label: {
+                Label("Meetings", systemImage: "video")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
 
             if appState.isGeneratingSummary {
                 HStack {
@@ -208,25 +250,9 @@ struct MenuBarView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(.leading, 20)
-            }
-
-            Divider()
-                .padding(.vertical, 4)
-
-            // Keyboard shortcuts hint
-            Text("Tastaturkuerzel:")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                ShortcutHint(shortcut: "⌘⇧A", action: "Quick Ask")
-                ShortcutHint(shortcut: "⌘⇧F", action: "Suchen")
-                ShortcutHint(shortcut: "⌘⇧G", action: "Galerie")
-                ShortcutHint(shortcut: "⌘⇧T", action: "Timeline")
-                ShortcutHint(shortcut: "⌘⇧R", action: "Aufnahme")
+                .padding(.top, 4)
             }
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Footer Section
@@ -254,6 +280,38 @@ struct MenuBarView: View {
     }
     
 
+}
+
+// MARK: - Menu Button Component
+
+struct MenuButton: View {
+    let title: String
+    let icon: String
+    var shortcut: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Label(title, systemImage: icon)
+                    .font(.caption)
+
+                Spacer()
+
+                if let shortcut = shortcut {
+                    Text(shortcut)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Color.clear)
+        .cornerRadius(4)
+    }
 }
 
 // MARK: - Stat Row Component

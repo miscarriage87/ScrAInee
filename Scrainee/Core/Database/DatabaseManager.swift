@@ -47,6 +47,28 @@ actor DatabaseManager {
             try Meeting.createTable(in: db)
             try MeetingScreenshot.createTable(in: db)
             try Summary.createTable(in: db)
+
+            // Migration: Add title column to summaries if it doesn't exist
+            try self.addColumnIfNotExists(db: db, table: "summaries", column: "title", type: "TEXT")
+
+            // Migration v2: Transcription tables
+            try TranscriptSegment.createTable(in: db)
+            try TranscriptSegment.createFTSTable(in: db)
+            try MeetingMinutes.createTable(in: db)
+            try ActionItem.createTable(in: db)
+
+            // Migration: Add transcription columns to meetings if they don't exist
+            try Meeting.addTranscriptionColumns(in: db)
+        }
+    }
+
+    /// Adds a column to a table if it doesn't already exist
+    private nonisolated func addColumnIfNotExists(db: Database, table: String, column: String, type: String) throws {
+        let columns = try db.columns(in: table)
+        let columnExists = columns.contains { $0.name == column }
+
+        if !columnExists {
+            try db.execute(sql: "ALTER TABLE \(table) ADD COLUMN \(column) \(type)")
         }
     }
 
@@ -262,12 +284,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            let record = summary
-            try record.insert(db)
-            guard let id = record.id else {
-                throw DatabaseError.queryFailed("Failed to get inserted summary ID")
-            }
-            return id
+            try summary.insert(db)
+            return db.lastInsertedRowID
         }
     }
 
@@ -280,6 +298,15 @@ actor DatabaseManager {
                 .order(Summary.Columns.createdAt.desc)
                 .limit(limit)
                 .fetchAll(db)
+        }
+    }
+
+    /// Deletes a summary by ID
+    func deleteSummary(id: Int64) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(sql: "DELETE FROM summaries WHERE id = ?", arguments: [id])
         }
     }
 
@@ -613,6 +640,292 @@ actor DatabaseManager {
             }
 
             return (start: firstScreenshot.timestamp, end: lastScreenshot.timestamp)
+        }
+    }
+
+    // MARK: - Transcript Segment Operations
+
+    /// Inserts a transcript segment
+    @discardableResult
+    func insert(_ segment: TranscriptSegment) async throws -> Int64 {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.write { db in
+            var record = segment
+            try record.insert(db)
+            guard let id = record.id else {
+                throw DatabaseError.queryFailed("Failed to get inserted segment ID")
+            }
+            return id
+        }
+    }
+
+    /// Gets transcript segments for a meeting
+    func getTranscriptSegments(for meetingId: Int64) async throws -> [TranscriptSegment] {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try TranscriptSegment
+                .filter(TranscriptSegment.Columns.meetingId == meetingId)
+                .order(TranscriptSegment.Columns.startTime.asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// Gets transcript segments in a time range for a meeting
+    func getTranscriptSegments(
+        for meetingId: Int64,
+        from startTime: TimeInterval,
+        to endTime: TimeInterval
+    ) async throws -> [TranscriptSegment] {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try TranscriptSegment
+                .filter(TranscriptSegment.Columns.meetingId == meetingId)
+                .filter(TranscriptSegment.Columns.startTime >= startTime)
+                .filter(TranscriptSegment.Columns.endTime <= endTime)
+                .order(TranscriptSegment.Columns.startTime.asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// Gets the full transcript text for a meeting
+    func getFullTranscript(for meetingId: Int64) async throws -> String {
+        let segments = try await getTranscriptSegments(for: meetingId)
+        return segments.map { $0.text }.joined(separator: " ")
+    }
+
+    /// Searches transcript segments using FTS5
+    func searchTranscripts(query: String, meetingId: Int64? = nil, limit: Int = 50) async throws -> [TranscriptSegment] {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        let escapedQuery = query
+            .replacingOccurrences(of: "\"", with: "\"\"")
+            .split(separator: " ")
+            .map { "\"\($0)\"*" }
+            .joined(separator: " ")
+
+        // Build SQL and capture values outside the closure
+        let finalMeetingId = meetingId
+        let finalLimit = limit
+
+        let sql: String
+        if finalMeetingId != nil {
+            sql = """
+                SELECT ts.*
+                FROM transcriptFts
+                JOIN transcriptSegments ts ON transcriptFts.rowid = ts.id
+                WHERE transcriptFts MATCH ?
+                AND ts.meetingId = ?
+                ORDER BY rank LIMIT ?
+            """
+        } else {
+            sql = """
+                SELECT ts.*
+                FROM transcriptFts
+                JOIN transcriptSegments ts ON transcriptFts.rowid = ts.id
+                WHERE transcriptFts MATCH ?
+                ORDER BY rank LIMIT ?
+            """
+        }
+
+        return try await db.read { db in
+            if let meetingId = finalMeetingId {
+                return try TranscriptSegment.fetchAll(db, sql: sql, arguments: [escapedQuery, meetingId, finalLimit])
+            } else {
+                return try TranscriptSegment.fetchAll(db, sql: sql, arguments: [escapedQuery, finalLimit])
+            }
+        }
+    }
+
+    /// Deletes all transcript segments for a meeting
+    func deleteTranscriptSegments(for meetingId: Int64) async throws -> Int {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.write { db in
+            try TranscriptSegment
+                .filter(TranscriptSegment.Columns.meetingId == meetingId)
+                .deleteAll(db)
+        }
+    }
+
+    // MARK: - Meeting Minutes Operations
+
+    /// Inserts or updates meeting minutes
+    @discardableResult
+    func upsert(_ minutes: MeetingMinutes) async throws -> Int64 {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.write { db in
+            var record = minutes
+
+            // Check if minutes already exist for this meeting
+            if let existing = try MeetingMinutes
+                .filter(MeetingMinutes.Columns.meetingId == minutes.meetingId)
+                .fetchOne(db) {
+                record.id = existing.id
+                record.version = existing.version + 1
+                try record.update(db)
+                return existing.id!
+            } else {
+                try record.insert(db)
+                return db.lastInsertedRowID
+            }
+        }
+    }
+
+    /// Gets meeting minutes for a meeting
+    func getMeetingMinutes(for meetingId: Int64) async throws -> MeetingMinutes? {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try MeetingMinutes
+                .filter(MeetingMinutes.Columns.meetingId == meetingId)
+                .fetchOne(db)
+        }
+    }
+
+    /// Updates meeting minutes
+    func update(_ minutes: MeetingMinutes) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try minutes.update(db)
+        }
+    }
+
+    /// Finalizes meeting minutes
+    func finalizeMeetingMinutes(for meetingId: Int64) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(
+                sql: "UPDATE meetingMinutes SET isFinalized = 1 WHERE meetingId = ?",
+                arguments: [meetingId]
+            )
+        }
+    }
+
+    // MARK: - Action Item Operations
+
+    /// Inserts an action item
+    @discardableResult
+    func insert(_ actionItem: ActionItem) async throws -> Int64 {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.write { db in
+            var record = actionItem
+            try record.insert(db)
+            guard let id = record.id else {
+                throw DatabaseError.queryFailed("Failed to get inserted action item ID")
+            }
+            return id
+        }
+    }
+
+    /// Inserts multiple action items
+    func insert(_ actionItems: [ActionItem]) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            for var item in actionItems {
+                try item.insert(db)
+            }
+        }
+    }
+
+    /// Gets action items for a meeting
+    func getActionItems(for meetingId: Int64) async throws -> [ActionItem] {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try ActionItem
+                .filter(ActionItem.Columns.meetingId == meetingId)
+                .order(ActionItem.Columns.priority.asc)
+                .order(ActionItem.Columns.createdAt.asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// Gets all active action items (pending or in progress)
+    func getActiveActionItems() async throws -> [ActionItem] {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try ActionItem
+                .filter(ActionItem.Columns.status == ActionItemStatus.pending.rawValue ||
+                       ActionItem.Columns.status == ActionItemStatus.inProgress.rawValue)
+                .order(ActionItem.Columns.priority.asc)
+                .order(ActionItem.Columns.dueDate.asc)
+                .fetchAll(db)
+        }
+    }
+
+    /// Updates an action item
+    func update(_ actionItem: ActionItem) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try actionItem.update(db)
+        }
+    }
+
+    /// Updates action item status
+    func updateActionItemStatus(id: Int64, status: ActionItemStatus) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(
+                sql: "UPDATE actionItems SET status = ? WHERE id = ?",
+                arguments: [status.rawValue, id]
+            )
+        }
+    }
+
+    /// Deletes an action item
+    func deleteActionItem(id: Int64) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(sql: "DELETE FROM actionItems WHERE id = ?", arguments: [id])
+        }
+    }
+
+    /// Deletes all action items for a meeting
+    func deleteActionItems(for meetingId: Int64) async throws -> Int {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.write { db in
+            try ActionItem
+                .filter(ActionItem.Columns.meetingId == meetingId)
+                .deleteAll(db)
+        }
+    }
+
+    // MARK: - Meeting Transcription Status
+
+    /// Updates meeting transcription status
+    func updateMeetingTranscriptionStatus(meetingId: Int64, status: TranscriptionStatus) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(
+                sql: "UPDATE meetings SET transcriptionStatus = ? WHERE id = ?",
+                arguments: [status.rawValue, meetingId]
+            )
+        }
+    }
+
+    /// Updates meeting audio file path
+    func updateMeetingAudioPath(meetingId: Int64, path: String?) async throws {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        try await db.write { db in
+            try db.execute(
+                sql: "UPDATE meetings SET audioFilePath = ? WHERE id = ?",
+                arguments: [path, meetingId]
+            )
         }
     }
 

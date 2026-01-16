@@ -1,5 +1,44 @@
 import SwiftUI
 import Combine
+import AppKit
+
+// MARK: - Window Configuration Helper
+
+struct WindowAccessor: ViewModifier {
+    let onWindow: (NSWindow) -> Void
+
+    func body(content: Content) -> some View {
+        content.background(WindowAccessorView(onWindow: onWindow))
+    }
+}
+
+struct WindowAccessorView: NSViewRepresentable {
+    let onWindow: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                onWindow(window)
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+extension View {
+    /// Konfiguriert das Fenster als floating (on-top) und auf dem aktuellen Space
+    func floatingWindow() -> some View {
+        self.modifier(WindowAccessor { window in
+            window.level = .floating
+            window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        })
+    }
+}
 
 @main
 struct ScraineeApp: App {
@@ -7,11 +46,20 @@ struct ScraineeApp: App {
     @StateObject private var appState = AppState.shared
     @Environment(\.openWindow) private var openWindow
 
+    /// Static closure to allow AppDelegate to open SwiftUI windows
+    static var openWindowAction: ((String) -> Void)?
+
     var body: some Scene {
         // Menu Bar App
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(appState)
+                .onAppear {
+                    // Initialize the static openWindow action for AppDelegate
+                    ScraineeApp.openWindowAction = { [openWindow] windowId in
+                        openWindow(id: windowId)
+                    }
+                }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: appState.isCapturing ? "record.circle.fill" : "record.circle")
@@ -31,6 +79,7 @@ struct ScraineeApp: App {
         Window("Suche", id: "search") {
             SearchView()
                 .environmentObject(appState)
+                .floatingWindow()
         }
         .keyboardShortcut("f", modifiers: [.command, .shift])
         .defaultSize(width: 600, height: 500)
@@ -39,13 +88,23 @@ struct ScraineeApp: App {
         Window("Zusammenfassung", id: "summary") {
             SummaryRequestView()
                 .environmentObject(appState)
+                .floatingWindow()
         }
         .defaultSize(width: 700, height: 600)
+
+        // Summary List Window
+        Window("Zusammenfassungen", id: "summarylist") {
+            SummaryListView()
+                .environmentObject(appState)
+                .floatingWindow()
+        }
+        .defaultSize(width: 800, height: 600)
 
         // Quick Ask Window (floating panel)
         Window("Quick Ask", id: "quickask") {
             QuickAskView()
                 .environmentObject(appState)
+                .floatingWindow()
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -55,6 +114,7 @@ struct ScraineeApp: App {
         Window("Screenshot Galerie", id: "gallery") {
             ScreenshotGalleryView()
                 .environmentObject(appState)
+                .floatingWindow()
         }
         .keyboardShortcut("g", modifiers: [.command, .shift])
         .defaultSize(width: 1000, height: 700)
@@ -63,9 +123,19 @@ struct ScraineeApp: App {
         Window("Timeline", id: "timeline") {
             ScreenshotTimelineView()
                 .environmentObject(appState)
+                .floatingWindow()
         }
         .keyboardShortcut("t", modifiers: [.command, .shift])
         .defaultSize(width: 1100, height: 750)
+
+        // Meeting Minutes Window
+        Window("Meeting Minutes", id: "meetingminutes") {
+            MeetingMinutesView()
+                .environmentObject(appState)
+                .floatingWindow()
+        }
+        .keyboardShortcut("m", modifiers: [.command, .shift])
+        .defaultSize(width: 1000, height: 700)
     }
 }
 
@@ -200,39 +270,93 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         windowObservers.append(timelineObserver)
+
+        // Listen for Meeting Minutes notification
+        let meetingMinutesObserver = NotificationCenter.default.addObserver(
+            forName: .showMeetingMinutes,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.openMeetingMinutesWindow()
+            }
+        }
+        windowObservers.append(meetingMinutesObserver)
     }
 
     // MARK: - Window Opening
 
+    private func configureWindowAsFloating(_ window: NSWindow) {
+        window.level = .floating
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     func openQuickAskWindow() {
         // Try to find and activate the window, or create new one
         if let window = NSApp.windows.first(where: { $0.title == "Quick Ask" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            configureWindowAsFloating(window)
         } else {
-            // Use NSApp to open window by sending notification
-            NSApp.sendAction(Selector(("showQuickAskWindow:")), to: nil, from: nil)
+            // Use SwiftUI's openWindow action to create the window
+            ScraineeApp.openWindowAction?("quickask")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.windows.first(where: { $0.title == "Quick Ask" }) {
+                    self.configureWindowAsFloating(window)
+                }
+            }
         }
     }
 
     func openSearchWindow() {
         if let window = NSApp.windows.first(where: { $0.title == "Suche" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            configureWindowAsFloating(window)
+        } else {
+            ScraineeApp.openWindowAction?("search")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.windows.first(where: { $0.title == "Suche" }) {
+                    self.configureWindowAsFloating(window)
+                }
+            }
         }
     }
 
     func openSummaryWindow() {
         if let window = NSApp.windows.first(where: { $0.title == "Zusammenfassung" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            configureWindowAsFloating(window)
+        } else {
+            ScraineeApp.openWindowAction?("summary")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.windows.first(where: { $0.title == "Zusammenfassung" }) {
+                    self.configureWindowAsFloating(window)
+                }
+            }
         }
     }
 
     func openTimelineWindow() {
         if let window = NSApp.windows.first(where: { $0.title == "Timeline" }) {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            configureWindowAsFloating(window)
+        } else {
+            ScraineeApp.openWindowAction?("timeline")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.windows.first(where: { $0.title == "Timeline" }) {
+                    self.configureWindowAsFloating(window)
+                }
+            }
+        }
+    }
+
+    func openMeetingMinutesWindow() {
+        if let window = NSApp.windows.first(where: { $0.title == "Meeting Minutes" }) {
+            configureWindowAsFloating(window)
+        } else {
+            ScraineeApp.openWindowAction?("meetingminutes")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.windows.first(where: { $0.title == "Meeting Minutes" }) {
+                    self.configureWindowAsFloating(window)
+                }
+            }
         }
     }
 }

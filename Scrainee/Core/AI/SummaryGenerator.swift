@@ -66,10 +66,11 @@ final class SummaryGenerator {
         // 2. Sample screenshots (max 15-20 for API limits)
         let sampledScreenshots = sampleScreenshots(screenshots, maxCount: 15)
 
-        // 3. Load image data
+        // 3. Load image data (converted to JPEG for Claude API compatibility)
+        // Note: Claude API only supports JPEG, PNG, GIF, WebP - NOT HEIC
         var imageData: [Data] = []
         for screenshot in sampledScreenshots {
-            if let data = imageCompressor.loadImageData(at: screenshot.filepath) {
+            if let data = imageCompressor.loadImageDataForAPI(at: screenshot.filepath) {
                 imageData.append(data)
             }
         }
@@ -93,7 +94,7 @@ final class SummaryGenerator {
             startTime: startTime,
             endTime: endTime,
             content: summaryText,
-            model: "claude-sonnet-4-5-20250514",
+            model: "claude-sonnet-4-20250514",
             promptTokens: usage?.input_tokens,
             completionTokens: usage?.output_tokens,
             screenshotCount: screenshots.count

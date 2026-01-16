@@ -106,6 +106,53 @@ final class ImageCompressor: Sendable {
         return try? Data(contentsOf: url)
     }
 
+    /// Loads image data and converts HEIC to JPEG for API compatibility
+    /// Claude API only supports: JPEG, PNG, GIF, WebP (NOT HEIC)
+    func loadImageDataForAPI(at relativePath: String, quality: CGFloat = 0.8) -> Data? {
+        let url = storageManager.screenshotsDirectory.appendingPathComponent(relativePath)
+
+        // Load the image
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            return nil
+        }
+
+        // Check if it's HEIC - if so, convert to JPEG
+        if let uti = CGImageSourceGetType(source) as String?,
+           uti.contains("heic") || uti.contains("heif") {
+            return convertToJPEG(cgImage, quality: quality)
+        }
+
+        // For other formats (PNG, JPEG, etc.), return original data
+        return try? Data(contentsOf: url)
+    }
+
+    /// Converts a CGImage to JPEG data
+    func convertToJPEG(_ image: CGImage, quality: CGFloat = 0.8) -> Data? {
+        let mutableData = NSMutableData()
+
+        guard let destination = CGImageDestinationCreateWithData(
+            mutableData,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            return nil
+        }
+
+        let options: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: quality
+        ]
+
+        CGImageDestinationAddImage(destination, image, options as CFDictionary)
+
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
+
+        return mutableData as Data
+    }
+
     // MARK: - Helpers
 
     private func generateFilename() -> String {

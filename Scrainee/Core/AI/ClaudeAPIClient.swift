@@ -303,38 +303,33 @@ final class ClaudeAPIClient: Sendable {
         return (text, apiResponse.usage)
     }
 
+    /// Detects the media type from image data
+    /// Note: Claude API only supports JPEG, PNG, GIF, WebP (NOT HEIC/HEIF)
     private func detectMediaType(from data: Data) -> String {
         guard data.count > 8 else { return "image/jpeg" }
 
-        let bytes = [UInt8](data.prefix(8))
+        let bytes = [UInt8](data.prefix(12))
 
-        // Check for HEIC/HEIF (ftyp box)
-        if bytes.count >= 8 {
-            let ftypString = String(bytes: bytes[4...7], encoding: .ascii)
-            if ftypString == "ftyp" {
-                return "image/heic"
-            }
-        }
-
-        // Check for PNG
+        // Check for PNG (magic bytes: 89 50 4E 47)
         if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
             return "image/png"
         }
 
-        // Check for JPEG
+        // Check for JPEG (magic bytes: FF D8 FF)
         if bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
             return "image/jpeg"
         }
 
-        // Check for WebP
-        if bytes.count >= 4 {
+        // Check for WebP (RIFF....WEBP)
+        if bytes.count >= 12 {
             let riffString = String(bytes: bytes[0...3], encoding: .ascii)
-            if riffString == "RIFF" {
+            let webpString = String(bytes: bytes[8...11], encoding: .ascii)
+            if riffString == "RIFF" && webpString == "WEBP" {
                 return "image/webp"
             }
         }
 
-        // Check for GIF
+        // Check for GIF (GIF87a or GIF89a)
         if bytes.count >= 6 {
             let gifString = String(bytes: bytes[0...5], encoding: .ascii)
             if gifString == "GIF87a" || gifString == "GIF89a" {
@@ -342,7 +337,7 @@ final class ClaudeAPIClient: Sendable {
             }
         }
 
-        // Default to JPEG
+        // Default to JPEG (safest fallback for Claude API)
         return "image/jpeg"
     }
 

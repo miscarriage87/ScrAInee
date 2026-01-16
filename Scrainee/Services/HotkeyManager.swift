@@ -16,6 +16,7 @@ final class HotkeyManager {
         case search = 3
         case summary = 4
         case timeline = 5
+        case meetingMinutes = 6
     }
 
     private init() {}
@@ -67,6 +68,9 @@ final class HotkeyManager {
 
         // Cmd+Shift+T: Timeline
         registerHotkey(id: .timeline, keyCode: UInt32(kVK_ANSI_T), modifiers: UInt32(cmdKey | shiftKey))
+
+        // Cmd+Shift+M: Meeting Minutes
+        registerHotkey(id: .meetingMinutes, keyCode: UInt32(kVK_ANSI_M), modifiers: UInt32(cmdKey | shiftKey))
 
         print("Global hotkeys registered")
     }
@@ -136,6 +140,8 @@ final class HotkeyManager {
                 NotificationCenter.default.post(name: .showSummary, object: nil)
             case .timeline:
                 NotificationCenter.default.post(name: .showTimeline, object: nil)
+            case .meetingMinutes:
+                NotificationCenter.default.post(name: .showMeetingMinutes, object: nil)
             case .none:
                 break
             }
@@ -152,4 +158,5 @@ extension Notification.Name {
     static let showSearch = Notification.Name("com.scrainee.showSearch")
     static let showSummary = Notification.Name("com.scrainee.showSummary")
     static let showTimeline = Notification.Name("com.scrainee.showTimeline")
+    static let showMeetingMinutes = Notification.Name("com.scrainee.showMeetingMinutes")
 }

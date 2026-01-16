@@ -16,6 +16,11 @@ struct SettingsView: View {
                     Label("Aufnahme", systemImage: "camera")
                 }
 
+            TranscriptionSettingsView()
+                .tabItem {
+                    Label("Transkription", systemImage: "waveform")
+                }
+
             AISettingsView()
                 .tabItem {
                     Label("KI", systemImage: "brain")
@@ -31,7 +36,7 @@ struct SettingsView: View {
                     Label("Speicher", systemImage: "internaldrive")
                 }
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 500, height: 450)
     }
 }
 
@@ -151,6 +156,186 @@ struct CaptureSettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+    }
+}
+
+// MARK: - Transcription Settings
+
+struct TranscriptionSettingsView: View {
+    @AppStorage("autoTranscribe") private var autoTranscribe = true
+    @AppStorage("liveMinutesEnabled") private var liveMinutesEnabled = true
+    @AppStorage("whisperModelDownloaded") private var whisperModelDownloaded = false
+
+    // Local state for whisper service (since it's not ObservableObject)
+    @State private var isModelLoaded = false
+    @State private var isDownloading = false
+    @State private var loadingStatus = ""
+    @State private var downloadProgress: Double = 0
+    @State private var whisperError: String?
+
+    private let whisperService = WhisperTranscriptionService.shared
+
+    var body: some View {
+        Form {
+            Section {
+                // Model status
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Whisper Modell (Large)")
+                            .font(.headline)
+                        Text(whisperService.modelSizeDescription)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    if isModelLoaded {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Geladen")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    } else if whisperModelDownloaded {
+                        Button("Laden") {
+                            loadModel()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isDownloading)
+                    } else {
+                        Button("Herunterladen") {
+                            downloadModel()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isDownloading)
+                    }
+                }
+
+                // Download progress
+                if !loadingStatus.isEmpty {
+                    HStack {
+                        if downloadProgress > 0 && downloadProgress < 1 {
+                            ProgressView(value: downloadProgress)
+                                .progressViewStyle(.linear)
+                        }
+                        Text(loadingStatus)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Error message
+                if let error = whisperError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            } header: {
+                Text("Whisper Spracherkennung")
+            } footer: {
+                Text("Lokale Spracherkennung mit OpenAI Whisper. Erfordert einmaligen Download.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section {
+                Toggle("Automatisch bei Meetings starten", isOn: $autoTranscribe)
+                    .disabled(!whisperModelDownloaded)
+                    .help("Startet die Transkription automatisch wenn ein Meeting erkannt wird")
+
+                Toggle("Live Meeting-Minutes", isOn: $liveMinutesEnabled)
+                    .disabled(!whisperModelDownloaded)
+                    .help("Generiert Meeting-Zusammenfassungen waehrend des Meetings")
+            } header: {
+                Text("Automatisierung")
+            }
+
+            Section {
+                HStack {
+                    Text("Unterstuetzte Sprachen")
+                    Spacer()
+                    Text("Deutsch, Englisch, 95+ weitere")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Modell-Qualitaet")
+                    Spacer()
+                    Text("Beste (Large-v3)")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Verarbeitung")
+                    Spacer()
+                    Text("Lokal (keine Cloud)")
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Information")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .onAppear {
+            updateState()
+        }
+    }
+
+    // MARK: - Actions
+
+    private func downloadModel() {
+        isDownloading = true
+        loadingStatus = "Starte Download..."
+        whisperError = nil
+
+        Task {
+            do {
+                try await whisperService.downloadModel()
+                await MainActor.run {
+                    updateState()
+                    whisperModelDownloaded = whisperService.isModelDownloaded
+                }
+            } catch {
+                await MainActor.run {
+                    whisperError = error.localizedDescription
+                    isDownloading = false
+                    loadingStatus = ""
+                }
+            }
+        }
+    }
+
+    private func loadModel() {
+        isDownloading = true
+        loadingStatus = "Lade Modell..."
+        whisperError = nil
+
+        Task {
+            do {
+                try await whisperService.loadModel()
+                await MainActor.run {
+                    updateState()
+                }
+            } catch {
+                await MainActor.run {
+                    whisperError = error.localizedDescription
+                    isDownloading = false
+                    loadingStatus = ""
+                }
+            }
+        }
+    }
+
+    private func updateState() {
+        isModelLoaded = whisperService.isModelLoaded
+        isDownloading = whisperService.isTranscribing
+        loadingStatus = whisperService.loadingStatus
+        downloadProgress = whisperService.downloadProgress
+        whisperError = whisperService.error
+        whisperModelDownloaded = whisperService.isModelDownloaded
     }
 }
 

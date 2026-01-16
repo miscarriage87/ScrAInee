@@ -101,7 +101,7 @@ struct SummaryRequestView: View {
                     viewModel.setLastHour()
                 }
 
-                QuickOptionButton(title: "Letzte 4 Stunden", icon: "clock.badge.4") {
+                QuickOptionButton(title: "Letzte 4 Stunden", icon: "clock.arrow.2.circlepath") {
                     viewModel.setLastFourHours()
                 }
 
@@ -109,7 +109,7 @@ struct SummaryRequestView: View {
                     viewModel.setToday()
                 }
 
-                QuickOptionButton(title: "Gestern", icon: "calendar.badge.minus") {
+                QuickOptionButton(title: "Gestern", icon: "calendar.day.timeline.left") {
                     viewModel.setYesterday()
                 }
             }
@@ -316,13 +316,24 @@ final class SummaryRequestViewModel: ObservableObject {
         summary = nil
 
         do {
+            // Get screenshot count
+            let screenshots = try await DatabaseManager.shared.getScreenshots(from: startDate, to: endDate)
+            screenshotCount = screenshots.count
+
             let text = try await summaryGenerator.generateQuickSummary(from: startDate, to: endDate)
-            summary = Summary(
+            var newSummary = Summary(
                 startTime: startDate,
                 endTime: endDate,
                 content: text,
-                model: "claude-sonnet-4-5-20250514"
+                model: "claude-sonnet-4-5-20250514",
+                screenshotCount: screenshots.count
             )
+
+            // Save to database
+            let id = try await DatabaseManager.shared.insert(newSummary)
+            newSummary.id = id
+
+            summary = newSummary
         } catch {
             errorMessage = error.localizedDescription
             showError = true
