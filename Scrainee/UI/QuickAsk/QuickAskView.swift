@@ -191,6 +191,10 @@ final class QuickAskViewModel: ObservableObject {
 
     private let summaryGenerator = SummaryGenerator()
     private var recentOCRTexts: [String] = []
+    private var meetingContext: String?
+    private var summaryContext: String?
+    private var actionItemsContext: String?
+    private var hasActiveMeeting = false
 
     // MARK: - Context Loading
 
@@ -208,6 +212,27 @@ final class QuickAskViewModel: ObservableObject {
             // Load recent OCR texts for context
             let ocrTexts = try await DatabaseManager.shared.getOCRTexts(from: lastHour, to: Date())
             recentOCRTexts = ocrTexts.map { $0.text }
+
+            // NEU: Meeting-Kontext laden (falls aktives Meeting)
+            if let activeMeeting = try await DatabaseManager.shared.getActiveMeeting() {
+                hasActiveMeeting = true
+                meetingContext = activeMeeting.aiSummary
+                contextSummary = "Meeting: \(activeMeeting.appName)"
+            }
+
+            // NEU: Letzte Summaries laden
+            let recentSummaries = try await DatabaseManager.shared.getSummaries(limit: 3)
+            if !recentSummaries.isEmpty {
+                summaryContext = recentSummaries.map { summary in
+                    "[\(summary.title ?? "Zusammenfassung")]: \(summary.content.prefix(500))"
+                }.joined(separator: "\n---\n")
+            }
+
+            // NEU: Aktive Action-Items laden
+            let activeItems = try await DatabaseManager.shared.getActiveActionItems()
+            if !activeItems.isEmpty {
+                actionItemsContext = activeItems.prefix(5).map { "- \($0.title)" }.joined(separator: "\n")
+            }
 
             // Generate suggestions based on context
             updateSuggestions()
@@ -229,26 +254,52 @@ final class QuickAskViewModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        // Build context from recent OCR texts
-        let contextText = recentOCRTexts.prefix(10).joined(separator: "\n---\n")
+        // Build comprehensive context from all available sources
+        var contextParts: [String] = []
+
+        // 1. Aktueller Bildschirm-Kontext (OCR)
+        let ocrContext = recentOCRTexts.prefix(10).joined(separator: "\n---\n")
+        if !ocrContext.isEmpty {
+            contextParts.append("### Aktueller Bildschirm (letzte Stunde):\n\(String(ocrContext.prefix(2000)))")
+        }
+
+        // 2. Meeting-Kontext (falls vorhanden)
+        if let meeting = meetingContext, !meeting.isEmpty {
+            contextParts.append("### Aktives Meeting:\n\(meeting)")
+        }
+
+        // 3. Letzte Zusammenfassungen
+        if let summaries = summaryContext, !summaries.isEmpty {
+            contextParts.append("### Letzte Zusammenfassungen:\n\(String(summaries.prefix(1500)))")
+        }
+
+        // 4. Offene Action-Items
+        if let items = actionItemsContext, !items.isEmpty {
+            contextParts.append("### Offene Aufgaben:\n\(items)")
+        }
+
+        let fullContext = contextParts.joined(separator: "\n\n")
 
         let prompt = """
-        Du bist ein hilfreicher Assistent. Basierend auf dem aktuellen Bildschirmkontext des Nutzers, beantworte folgende Frage kurz und praezise.
+        Du bist ein hilfreicher Assistent mit Zugriff auf den aktuellen Kontext des Nutzers.
 
-        Aktueller Kontext (extrahierter Text aus Screenshots):
-        ---
-        \(contextText.prefix(3000))
-        ---
+        \(fullContext.isEmpty ? "Kein Kontext verfuegbar." : fullContext)
 
         Frage des Nutzers: \(question)
 
-        Antworte auf Deutsch, kurz und hilfreich. Wenn der Kontext nicht ausreicht, sag das ehrlich.
+        Antworte auf Deutsch, kurz und hilfreich. Beziehe dich auf den Kontext wenn relevant. Wenn der Kontext nicht ausreicht, sag das ehrlich.
         """
 
         do {
+            // Pruefe API-Key vor dem Erstellen des Clients
+            guard let apiKey = KeychainService.shared.claudeAPIKey, !apiKey.isEmpty else {
+                response = "Bitte konfiguriere zuerst deinen Claude API Key in den Einstellungen."
+                return
+            }
+
             let client = ClaudeAPIClient(
-                apiKey: KeychainService.shared.claudeAPIKey ?? "",
-                model: "claude-sonnet-4-5-20250514",
+                apiKey: apiKey,
+                model: "claude-sonnet-4-5-20250929",
                 maxTokens: 500
             )
 
@@ -267,12 +318,30 @@ final class QuickAskViewModel: ObservableObject {
     // MARK: - Suggestions
 
     private func updateSuggestions() {
-        suggestions = [
-            "Was war das Hauptthema der letzten Stunde?",
-            "Fasse die wichtigsten Punkte zusammen",
-            "Welche Aufgaben wurden besprochen?",
-            "Gibt es Action Items?"
-        ]
+        var dynamicSuggestions: [String] = []
+
+        // Basis-Vorschlaege
+        dynamicSuggestions.append("Was war das Hauptthema der letzten Stunde?")
+        dynamicSuggestions.append("Fasse die wichtigsten Punkte zusammen")
+
+        // Kontext-abhaengige Vorschlaege
+        if hasActiveMeeting {
+            dynamicSuggestions.insert("Was wurde im Meeting besprochen?", at: 0)
+            dynamicSuggestions.append("Wer hat was gesagt?")
+        }
+
+        if actionItemsContext != nil {
+            dynamicSuggestions.append("Welche Aufgaben sind offen?")
+        } else {
+            dynamicSuggestions.append("Gibt es Action Items?")
+        }
+
+        if summaryContext != nil {
+            dynamicSuggestions.append("Was habe ich heute gemacht?")
+        }
+
+        // Maximal 4 Vorschlaege anzeigen
+        suggestions = Array(dynamicSuggestions.prefix(4))
     }
 }
 

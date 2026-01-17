@@ -19,7 +19,7 @@ final class MeetingMinutesGenerator: ObservableObject {
     // MARK: - Configuration
 
     private let minSegmentsForUpdate = 3
-    private let model = "claude-sonnet-4-20250514"
+    private let model = "claude-sonnet-4-5-20250929"
 
     // MARK: - Initialization
 

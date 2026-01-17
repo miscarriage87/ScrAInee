@@ -94,7 +94,7 @@ final class SummaryGenerator {
             startTime: startTime,
             endTime: endTime,
             content: summaryText,
-            model: "claude-sonnet-4-20250514",
+            model: "claude-sonnet-4-5-20250929",
             promptTokens: usage?.input_tokens,
             completionTokens: usage?.output_tokens,
             screenshotCount: screenshots.count

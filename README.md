@@ -1,10 +1,41 @@
-# ScrAInee
+<p align="center">
+  <img src="docs/assets/logo.png" alt="ScrAInee Logo" width="128" height="128">
+</p>
 
-**Intelligente Bildschirmaufnahme mit AI-Power für macOS**
+<h1 align="center">ScrAInee</h1>
 
-ScrAInee ist eine macOS Menu-Bar App, die kontinuierlich Screenshots aufnimmt, Text via OCR extrahiert und AI-gestützte Zusammenfassungen erstellt. Perfekt für Meetings, Recherche und die Dokumentation deiner Arbeit.
+<p align="center">
+  <strong>Intelligente Bildschirmaufnahme mit AI-Power für macOS</strong>
+</p>
 
-> Inspiriert von Rewind.ai
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#konfiguration">Konfiguration</a> •
+  <a href="#tastaturkürzel">Shortcuts</a> •
+  <a href="#architektur">Architektur</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-macOS%2014%2B-blue?style=flat-square" alt="Platform">
+  <img src="https://img.shields.io/badge/Swift-5.9%2B-orange?style=flat-square" alt="Swift">
+  <img src="https://img.shields.io/badge/AI-Claude%20Sonnet%204.5-purple?style=flat-square" alt="AI Model">
+  <img src="https://img.shields.io/badge/Tests-95%20passed-green?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square" alt="License">
+</p>
+
+---
+
+## Was ist ScrAInee?
+
+ScrAInee ist eine macOS Menu-Bar App, die kontinuierlich Screenshots aufnimmt, Text via OCR extrahiert und AI-gestützte Zusammenfassungen erstellt. Perfekt für:
+
+- **Meetings dokumentieren** - Automatische Zusammenfassungen nach Meeting-Ende
+- **Recherche nachverfolgen** - Finde wieder, was du gesehen hast
+- **Arbeitszeit analysieren** - Timeline-Ansicht deines Tages
+- **Quick Ask** - Stelle Fragen zum aktuellen Bildschirminhalt
+
+> Inspiriert von Rewind.ai - aber lokal, privat und mit Claude AI
 
 ---
 
@@ -12,103 +43,60 @@ ScrAInee ist eine macOS Menu-Bar App, die kontinuierlich Screenshots aufnimmt, T
 
 ### Screenshot-Aufnahme
 
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Automatische Aufnahme | ✅ Fertig | Kontinuierliche Screenshots in einstellbaren Intervallen (1-60 Sek.) |
-| Multi-Monitor Support | ✅ Fertig | Parallele Erfassung aller angeschlossenen Displays |
-| Duplikat-Erkennung | ✅ Fertig | Perceptual Hash (dHash) verhindert redundante Screenshots |
-| HEIC-Kompression | ✅ Fertig | Platzsparende Speicherung mit einstellbarer Qualität |
-| Adaptive Intervalle | ✅ Fertig | Dynamische Anpassung basierend auf Aktivität/Idle-Status |
-| App-Erkennung | ✅ Fertig | Erfasst aktive App und Fenstertitel pro Screenshot |
+| Feature | Beschreibung |
+|---------|--------------|
+| **Automatische Aufnahme** | Kontinuierliche Screenshots in einstellbaren Intervallen (1-60 Sek.) |
+| **Multi-Monitor Support** | Parallele Erfassung aller angeschlossenen Displays |
+| **Duplikat-Erkennung** | Perceptual Hash (dHash) verhindert redundante Screenshots |
+| **HEIC-Kompression** | Platzsparende Speicherung mit einstellbarer Qualität |
+| **Adaptive Intervalle** | Dynamische Anpassung basierend auf Aktivität/Idle-Status |
+| **App-Erkennung** | Erfasst aktive App und Fenstertitel pro Screenshot |
 
 ### OCR & Texterkennung
 
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Automatische OCR | ✅ Fertig | Vision Framework extrahiert Text aus Screenshots |
-| Mehrsprachig | ✅ Fertig | Deutsch und Englisch unterstützt |
-| Hintergrund-Verarbeitung | ✅ Fertig | OCR läuft asynchron ohne UI-Blockierung |
-| Volltextsuche | ✅ Fertig | Durchsuche alle erfassten Texte |
+| Feature | Beschreibung |
+|---------|--------------|
+| **Automatische OCR** | Vision Framework extrahiert Text aus Screenshots |
+| **Mehrsprachig** | Deutsch und Englisch unterstützt |
+| **Hintergrund-Verarbeitung** | OCR läuft asynchron ohne UI-Blockierung |
+| **Volltextsuche** | Durchsuche alle erfassten Texte mit FTS5 |
 
-### AI-Features (Claude API)
+### AI-Features (Claude Sonnet 4.5)
 
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Quick Ask | ✅ Fertig | Stelle Fragen zum aktuellen Bildschirminhalt |
-| Zusammenfassungen | ✅ Fertig | AI-generierte Zusammenfassungen für Zeiträume |
-| Meeting-Zusammenfassungen | ✅ Fertig | Automatische Summaries nach Meeting-Ende |
-| Kontext-Analyse | 🔄 Geplant | Intelligente Analyse von Arbeitsmustern |
+| Feature | Beschreibung |
+|---------|--------------|
+| **Quick Ask** | Stelle Fragen zum aktuellen Kontext - nutzt OCR, Meetings, Summaries |
+| **Zusammenfassungen** | AI-generierte Zusammenfassungen für beliebige Zeiträume |
+| **Meeting-Zusammenfassungen** | Automatische Summaries nach Meeting-Ende |
+| **Action Items** | Extrahiert Aufgaben aus Meeting-Inhalten |
 
 ### Meeting-Erkennung
 
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Auto-Erkennung | ✅ Fertig | Erkennt Teams, Zoom, Webex, Google Meet |
-| Erhöhte Frequenz | ✅ Fertig | Kürzere Intervalle während Meetings |
-| Meeting-Sessions | ✅ Fertig | Gruppiert Screenshots pro Meeting |
-| Meeting-Notizen | 🔄 Geplant | Automatische Notizen-Generierung |
-
-### Notion-Integration
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Meeting-Sync | ✅ Fertig | Exportiere Meeting-Zusammenfassungen zu Notion |
-| Auto-Sync | ✅ Fertig | Automatischer Upload nach Meeting-Ende |
-| Database-Integration | ✅ Fertig | Speichert in konfigurierbarer Notion-Database |
+| Feature | Beschreibung |
+|---------|--------------|
+| **Auto-Erkennung** | Erkennt Teams, Zoom, Webex, Google Meet automatisch |
+| **Erhöhte Frequenz** | Kürzere Capture-Intervalle während Meetings |
+| **Meeting-Sessions** | Gruppiert Screenshots pro Meeting |
+| **Notion-Sync** | Automatischer Export zu Notion nach Meeting-Ende |
 
 ### Timeline & Navigation
 
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Timeline-Ansicht | ✅ Fertig | Rewind.AI-Style Navigation durch Screenshots |
-| Zeit-Slider | ✅ Fertig | Scrubben durch den Tag mit App-Segmenten |
-| Thumbnail-Leiste | ✅ Fertig | Schnelle visuelle Übersicht |
-| Tastatursteuerung | ✅ Fertig | Pfeiltasten für Navigation |
-| Datum-Navigation | ✅ Fertig | Springe zu beliebigem Tag |
-
-### Galerie & Suche
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Screenshot-Galerie | ✅ Fertig | Grid-Ansicht aller Screenshots |
-| Filter nach App | ✅ Fertig | Zeige nur Screenshots bestimmter Apps |
-| Filter nach Zeit | ✅ Fertig | Zeitraum-basierte Filterung |
-| Volltextsuche | ✅ Fertig | Suche in OCR-Text und Metadaten |
-
-### Speicher & Datenverwaltung
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| SQLite-Datenbank | ✅ Fertig | GRDB für performante Speicherung |
-| Retention Policy | ✅ Fertig | Automatische Bereinigung alter Daten |
-| Speicher-Statistiken | ✅ Fertig | Übersicht über genutzten Speicherplatz |
-| Thumbnail-Cache | ✅ Fertig | LRU-Cache für schnelles Laden |
-
-### Sicherheit & Privatsphäre
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Lokale Speicherung | ✅ Fertig | Alle Daten bleiben auf deinem Mac |
-| Keychain-Integration | ✅ Fertig | API-Keys sicher im Keychain |
-| Hardened Runtime | ✅ Fertig | Code-Signierung für macOS |
-| Privacy-Permissions | ✅ Fertig | Saubere Permission-Anfragen |
-
-### UI & Bedienung
-
-| Feature | Status | Beschreibung |
-|---------|--------|--------------|
-| Menu-Bar App | ✅ Fertig | Unaufdringlich in der Systemleiste |
-| Globale Hotkeys | ✅ Fertig | Schnellzugriff per Tastaturkürzel |
-| Dark/Light Mode | ✅ Fertig | Folgt System-Einstellung |
-| SwiftUI-Interface | ✅ Fertig | Native macOS-Optik |
+| Feature | Beschreibung |
+|---------|--------------|
+| **Timeline-Ansicht** | Rewind.AI-Style Navigation durch Screenshots |
+| **Zeit-Slider** | Scrubben durch den Tag mit App-Segmenten |
+| **Thumbnail-Leiste** | Schnelle visuelle Übersicht |
+| **Tastatursteuerung** | Pfeiltasten für Navigation |
 
 ---
 
 ## Tastaturkürzel
 
+### Global
+
 | Shortcut | Funktion |
 |----------|----------|
-| `Cmd+Shift+A` | Quick Ask - AI-Frage zum Kontext |
+| `Cmd+Shift+A` | **Quick Ask** - AI-Frage zum Kontext |
 | `Cmd+Shift+R` | Aufnahme starten/stoppen |
 | `Cmd+Shift+F` | Suche öffnen |
 | `Cmd+Shift+S` | Zusammenfassung erstellen |
@@ -119,22 +107,19 @@ ScrAInee ist eine macOS Menu-Bar App, die kontinuierlich Screenshots aufnimmt, T
 
 | Shortcut | Funktion |
 |----------|----------|
-| `←` | Vorheriger Screenshot |
-| `→` | Nächster Screenshot |
-| `Shift+←` | 10 Screenshots zurück |
-| `Shift+→` | 10 Screenshots vor |
-
----
-
-## Systemanforderungen
-
-- **macOS 14.0+** (Sonoma oder neuer)
-- **Screen Recording Permission** (Pflicht)
-- **Accessibility Permission** (Optional, für globale Hotkeys)
+| `←` / `→` | Vorheriger / Nächster Screenshot |
+| `Shift+←` / `Shift+→` | 10 Screenshots zurück / vor |
 
 ---
 
 ## Installation
+
+### Voraussetzungen
+
+- **macOS 14.0+** (Sonoma oder neuer)
+- **Xcode 15+** (für Build)
+- **Screen Recording Permission** (Pflicht)
+- **Accessibility Permission** (Optional, für globale Hotkeys)
 
 ### Aus Source bauen
 
@@ -143,20 +128,18 @@ ScrAInee ist eine macOS Menu-Bar App, die kontinuierlich Screenshots aufnimmt, T
 git clone https://github.com/miscarriage87/ScrAInee.git
 cd ScrAInee
 
-# Mit xcodegen das Xcode-Projekt generieren
-brew install xcodegen
-xcodegen generate
-
-# In Xcode öffnen
+# Xcode-Projekt öffnen
 open Scrainee.xcodeproj
 
-# Team auswählen unter Signing & Capabilities, dann Cmd+R
+# Oder mit Swift Package Manager
+swift build -c release
 ```
 
-### Oder direkt mit Swift Package Manager
+### Tests ausführen
 
 ```bash
-swift build -c release
+swift test
+# 95 Tests, 0 Failures
 ```
 
 ---
@@ -168,6 +151,9 @@ swift build -c release
 1. Hole dir einen API-Key von [Anthropic Console](https://console.anthropic.com/)
 2. Öffne ScrAInee → Einstellungen → AI
 3. Füge deinen API-Key ein
+4. Der Key wird sicher im macOS Keychain gespeichert
+
+> ScrAInee verwendet Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) für beste Ergebnisse
 
 ### Notion-Integration (optional)
 
@@ -184,23 +170,23 @@ swift build -c release
 ScrAInee/
 ├── App/                    # Entry Point, AppState
 ├── Core/
-│   ├── AI/                 # Claude API Client
-│   ├── Database/           # GRDB Models & Manager
+│   ├── AI/                 # Claude API Client (Sonnet 4.5)
+│   ├── Database/           # GRDB Models & Manager (Actor)
 │   ├── Integration/        # Notion Client
 │   ├── Meeting/            # Meeting Detection
 │   ├── OCR/                # Vision Framework
 │   ├── ScreenCapture/      # ScreenCaptureKit
-│   ├── Cache/              # Thumbnail Cache
+│   ├── Cache/              # Thumbnail Cache (LRU)
 │   └── Storage/            # File Management
 ├── Services/               # Hotkeys, Permissions, Keychain
 ├── UI/
 │   ├── MenuBar/            # Menu Bar Dropdown
-│   ├── Timeline/           # Timeline View
+│   ├── Timeline/           # Timeline View (Rewind-Style)
 │   ├── Gallery/            # Screenshot Gallery
-│   ├── Search/             # Search View
+│   ├── Search/             # FTS5 Search
 │   ├── QuickAsk/           # AI Quick Ask
 │   └── Settings/           # Einstellungen
-└── Tests/                  # Unit & E2E Tests
+└── Tests/                  # 95 Unit & E2E Tests
 ```
 
 ---
@@ -209,24 +195,24 @@ ScrAInee/
 
 | Komponente | Technologie |
 |------------|-------------|
-| UI | SwiftUI |
-| Sprache | Swift 5.9+ |
-| Datenbank | GRDB.swift (SQLite) |
-| Screenshot | ScreenCaptureKit |
-| OCR | Vision Framework |
-| AI | Claude API (Anthropic) |
-| Secrets | KeychainAccess |
-| Build | Swift Package Manager + xcodegen |
+| **UI** | SwiftUI |
+| **Sprache** | Swift 5.9+ |
+| **Concurrency** | Swift Concurrency (async/await, actors) |
+| **Datenbank** | GRDB.swift (SQLite + FTS5) |
+| **Screenshot** | ScreenCaptureKit |
+| **OCR** | Vision Framework |
+| **AI** | Claude Sonnet 4.5 (Anthropic API) |
+| **Secrets** | KeychainAccess |
 
 ---
 
-## Speicherort
+## Datenspeicherung
 
 ```
 ~/Library/Application Support/Scrainee/
 ├── scrainee.sqlite         # Datenbank
 ├── screenshots/            # HEIC Screenshots
-│   └── 2025/01/15/         # Nach Datum sortiert
+│   └── 2026/01/17/         # Nach Datum sortiert
 └── logs/                   # Log-Dateien
 ```
 
@@ -238,16 +224,22 @@ ScrAInee/
 
 ---
 
-## Geplante Features
+## Privatsphäre & Sicherheit
 
-- [ ] **Export-Funktionen** - PDF, Video-Timelapse
-- [ ] **Tagging-System** - Manuelle Tags für Screenshots
-- [ ] **Projekt-Gruppierung** - Screenshots nach Projekten organisieren
-- [ ] **Smarte Suche** - AI-gestützte semantische Suche
+- **100% Lokal** - Alle Daten bleiben auf deinem Mac
+- **Keychain** - API-Keys sicher im System-Keychain
+- **Hardened Runtime** - Code-Signierung für macOS
+- **Keine Telemetrie** - Keine Daten werden gesendet (außer an Claude API bei AI-Features)
+
+---
+
+## Roadmap
+
+- [ ] **Offline-LLM** - Ollama-Integration für lokale AI-Verarbeitung
+- [ ] **Knowledge Base** - Semantische Suche mit Vektor-Embeddings
+- [ ] **Projekt-Überwachung** - Automatische Analyse von Projekt-Ordnern
+- [ ] **Export** - PDF, Video-Timelapse
 - [ ] **Widgets** - macOS Widgets für Statistiken
-- [ ] **Shortcuts-Integration** - Apple Shortcuts Aktionen
-- [ ] **Cloud-Sync** - Optional verschlüsselter Cloud-Backup
-- [ ] **Browser-Extension** - Erfasse zusätzlich aktive URLs
 
 ---
 
@@ -271,4 +263,6 @@ Pull Requests willkommen! Bitte erst ein Issue erstellen für größere Änderun
 
 ---
 
-*Entwickelt mit Claude Code*
+<p align="center">
+  <sub>Entwickelt mit ❤️ und Claude Code</sub>
+</p>

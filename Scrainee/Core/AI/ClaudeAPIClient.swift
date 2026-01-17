@@ -20,7 +20,7 @@ final class ClaudeAPIClient: Sendable {
 
     // MARK: - Initialization
 
-    init(apiKey: String, model: String = "claude-sonnet-4-20250514", maxTokens: Int = 4096, retryConfig: RetryConfig = RetryConfig()) {
+    init(apiKey: String, model: String = "claude-sonnet-4-5-20250929", maxTokens: Int = 4096, retryConfig: RetryConfig = RetryConfig()) {
         self.apiKey = apiKey
         self.model = model
         self.maxTokens = maxTokens
