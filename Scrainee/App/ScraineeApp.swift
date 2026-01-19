@@ -201,10 +201,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start meeting detector
         MeetingDetector.shared.startMonitoring()
 
-        // Run startup health checks
-        Task {
-            await StartupCheckManager.shared.runAllChecks()
-        }
+        // Run startup health checks (direkt nach initializeApp, nicht in separatem Task)
+        await StartupCheckManager.shared.runAllChecks()
 
         // Register for sleep/wake notifications to handle permission changes
         registerForSystemNotifications()

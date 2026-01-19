@@ -89,16 +89,14 @@ final class AppState: ObservableObject {
 
         await refreshStats()
 
-        // Auto-load Whisper model if already downloaded
+        // Auto-load Whisper model if already downloaded (await, nicht fire-and-forget)
         if WhisperTranscriptionService.shared.isModelDownloaded && !WhisperTranscriptionService.shared.isModelLoaded {
-            Task {
-                do {
-                    print("[DEBUG] Auto-loading Whisper model...")
-                    try await WhisperTranscriptionService.shared.loadModel()
-                    print("[DEBUG] Whisper model auto-loaded successfully")
-                } catch {
-                    print("[WARNING] Failed to auto-load Whisper model: \(error)")
-                }
+            do {
+                print("[DEBUG] Auto-loading Whisper model...")
+                try await WhisperTranscriptionService.shared.loadModel()
+                print("[DEBUG] Whisper model auto-loaded successfully")
+            } catch {
+                print("[WARNING] Failed to auto-load Whisper model: \(error)")
             }
         }
 
