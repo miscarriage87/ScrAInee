@@ -268,12 +268,13 @@ final class MeetingDetector: ObservableObject {
 
         print("Meeting started: \(app)")
 
-        // Notify
-        NotificationCenter.default.post(name: .meetingStarted, object: session)
-
-        // Save to database
+        // Save to database FIRST, then notify
         Task {
             await saveMeetingToDatabase(session)
+            // Notify AFTER save completed so TranscriptionCoordinator can find the meeting
+            await MainActor.run {
+                NotificationCenter.default.post(name: .meetingStarted, object: session)
+            }
         }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var startupChecker = StartupCheckManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -22,6 +23,12 @@ struct MenuBarView: View {
 
             // Quick stats
             statsSection
+
+            Divider()
+                .padding(.vertical, 8)
+
+            // System status
+            systemStatusSection
 
             Divider()
                 .padding(.vertical, 8)
@@ -149,6 +156,91 @@ struct MenuBarView: View {
                 .stroke(Color.orange.opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(8)
+    }
+
+    // MARK: - System Status Section
+
+    @State private var isStatusExpanded = false
+
+    private var systemStatusSection: some View {
+        DisclosureGroup(isExpanded: $isStatusExpanded) {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(startupChecker.checkResults) { check in
+                    HStack(spacing: 8) {
+                        statusCircle(for: check.status)
+                        Text(check.service.rawValue)
+                            .font(.caption)
+                        Spacer()
+                        if !check.message.isEmpty {
+                            Text(check.message)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+            .padding(.leading, 8)
+            .padding(.top, 4)
+        } label: {
+            HStack(spacing: 6) {
+                Label("System Status", systemImage: "checkmark.shield")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                // Summary indicator
+                if startupChecker.hasCompletedInitialCheck {
+                    HStack(spacing: 2) {
+                        let successCount = startupChecker.checkResults.filter { $0.status == .success }.count
+                        let warningCount = startupChecker.checkResults.filter { $0.status == .warning || $0.status == .notConfigured }.count
+                        let errorCount = startupChecker.checkResults.filter { $0.status == .error }.count
+
+                        if errorCount > 0 {
+                            statusCircle(for: .error)
+                            Text("\(errorCount)")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                        }
+                        if warningCount > 0 {
+                            statusCircle(for: .warning)
+                            Text("\(warningCount)")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                        if successCount > 0 {
+                            statusCircle(for: .success)
+                            Text("\(successCount)")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
+                } else if startupChecker.isChecking {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                }
+            }
+        }
+    }
+
+    private func statusCircle(for status: StartupCheckManager.CheckStatus) -> some View {
+        Circle()
+            .fill(colorForStatus(status))
+            .frame(width: 8, height: 8)
+    }
+
+    private func colorForStatus(_ status: StartupCheckManager.CheckStatus) -> Color {
+        switch status {
+        case .success:
+            return .green
+        case .warning, .notConfigured:
+            return .orange
+        case .error:
+            return .red
+        case .pending, .checking:
+            return .gray
+        }
     }
 
     // MARK: - Stats Section

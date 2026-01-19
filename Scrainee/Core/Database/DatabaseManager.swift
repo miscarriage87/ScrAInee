@@ -80,8 +80,11 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            try screenshot.insert(db)
-            return db.lastInsertedRowID
+            let inserted = try screenshot.inserted(db)
+            guard let id = inserted.id else {
+                throw DatabaseError.queryFailed("Failed to get inserted screenshot ID")
+            }
+            return id
         }
     }
 
@@ -145,9 +148,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            let record = ocrResult
-            try record.insert(db)
-            guard let id = record.id else {
+            let inserted = try ocrResult.inserted(db)
+            guard let id = inserted.id else {
                 throw DatabaseError.queryFailed("Failed to get inserted OCR result ID")
             }
             return id
@@ -225,9 +227,8 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            let record = meeting
-            try record.insert(db)
-            guard let id = record.id else {
+            let inserted = try meeting.inserted(db)
+            guard let id = inserted.id else {
                 throw DatabaseError.queryFailed("Failed to get inserted meeting ID")
             }
             return id
@@ -284,8 +285,11 @@ actor DatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            try summary.insert(db)
-            return db.lastInsertedRowID
+            let inserted = try summary.inserted(db)
+            guard let id = inserted.id else {
+                throw DatabaseError.queryFailed("Failed to get inserted summary ID")
+            }
+            return id
         }
     }
 
