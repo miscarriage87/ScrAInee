@@ -60,16 +60,27 @@ final class WhisperTranscriptionService: @unchecked Sendable {
     // MARK: - Model Management
 
     /// Checks if the Whisper model is downloaded
-    /// WhisperKit kann verschiedene Verzeichnisstrukturen verwenden
+    /// WhisperKit speichert Modelle unter: models/argmaxinc/whisperkit-coreml/openai_whisper-{variant}/
     var isModelDownloaded: Bool {
         let basePath = getModelBasePath()
-        let possiblePaths = [
-            basePath.appendingPathComponent(modelVariant),
-            basePath.appendingPathComponent("models/\(modelVariant)"),
-            basePath.appendingPathComponent("openai_whisper-\(modelVariant)"),
-            basePath.appendingPathComponent("whisperkit-coreml/openai_whisper-\(modelVariant)")
-        ]
-        return possiblePaths.contains { FileManager.default.fileExists(atPath: $0.path) }
+
+        // WhisperKit's tatsächliche Verzeichnisstruktur
+        let whisperKitPath = basePath
+            .appendingPathComponent("models")
+            .appendingPathComponent("argmaxinc")
+            .appendingPathComponent("whisperkit-coreml")
+            .appendingPathComponent("openai_whisper-\(modelVariant)")
+
+        // Prüfe ob das Modell-Verzeichnis existiert und die wichtigsten Dateien enthält
+        let audioEncoderPath = whisperKitPath.appendingPathComponent("AudioEncoder.mlmodelc")
+        let textDecoderPath = whisperKitPath.appendingPathComponent("TextDecoder.mlmodelc")
+
+        let exists = FileManager.default.fileExists(atPath: audioEncoderPath.path) &&
+                     FileManager.default.fileExists(atPath: textDecoderPath.path)
+
+        print("WhisperTranscriptionService: Checking model at \(whisperKitPath.path) - exists: \(exists)")
+
+        return exists
     }
 
     /// Gets the model size description
