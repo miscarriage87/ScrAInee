@@ -2,13 +2,26 @@
 
 **Letzte Aktualisierung:** 2026-01-19
 **Aktueller Branch:** main
-**Letzter Commit:** da8d510
+**Letzter Commit:** a5b4b4a
 
 ---
 
 ## Kürzlich implementierte Features
 
-### Session 2026-01-19
+### Session 2026-01-19 (Update 2)
+
+#### 5. Whisper Model Path Fix
+- **Problem:** Whisper-Modell wurde nicht erkannt obwohl heruntergeladen (~3GB)
+- **Ursache:** `isModelDownloaded` prüfte falsche Pfade
+- **Fix:** Korrekter WhisperKit-Pfad: `models/argmaxinc/whisperkit-coreml/openai_whisper-large-v3/`
+
+#### 6. Race Condition Fix beim Model Loading
+- **Problem:** Health Checks zeigten "nicht geladen" obwohl Loading lief
+- **Ursache:** `loadModel()` war fire-and-forget Task, Health Checks liefen parallel
+- **Fix:** Direktes `await loadModel()` ohne Task-Wrapper
+- **Fix:** Health Checks laufen jetzt sequentiell nach `initializeApp()`
+
+### Session 2026-01-19 (Initial)
 
 #### 1. Meeting-System Fixes
 - **GRDB Insert-Pattern Fix:** Alle `insert()` Methoden in `DatabaseManager.swift` verwenden jetzt `.inserted(db)` statt `.insert(db)` für korrekte ID-Rückgabe
@@ -128,6 +141,7 @@ swift build -c release
 | `Services/StartupCheckManager.swift` | **NEU** |
 | `Core/Database/DatabaseManager.swift` | Insert-Pattern Fix |
 | `Core/Meeting/MeetingDetector.swift` | Race Condition Fix |
-| `App/AppState.swift` | Whisper Auto-Load |
-| `App/ScraineeApp.swift` | Startup Checks Integration |
+| `Core/Audio/WhisperTranscriptionService.swift` | Model Path Detection Fix |
+| `App/AppState.swift` | Whisper Auto-Load + Race Condition Fix |
+| `App/ScraineeApp.swift` | Startup Checks Integration + Sequential Execution |
 | `UI/MenuBar/MenuBarView.swift` | Status-Anzeige |
