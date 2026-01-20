@@ -1,3 +1,29 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: TimelineViewModel.swift | PURPOSE: Timeline State & Navigation Logic | LAYER: UI/Timeline
+//
+// DEPENDENCIES:
+//   - DatabaseManager (Actor): Screenshot-Abfragen, Zeitgrenzen, naechster Screenshot
+//   - ThumbnailCache (Actor): Thumbnail-Preloading fuer Performance
+//   - Screenshot (Model): Screenshot-Entitaet
+//   - ActivitySegment (Model): buildSegments() fuer App-Visualisierung
+//
+// DEPENDENTS:
+//   - TimelineView.swift: Haupt-Consumer (@StateObject)
+//   - TimelineThumbnailStrip.swift: @ObservedObject Binding
+//   - TimelineSliderView.swift: Slider-Value Binding
+//   - TimelineNavigationButtons.swift: Navigation-Actions
+//   - TimelineDateNavigation.swift: Datum-Navigation
+//
+// CHANGE IMPACT:
+//   - @Published Properties aendern UI-Updates
+//   - Navigation-Methoden werden von mehreren Views aufgerufen
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import SwiftUI
 import Combine

@@ -1,3 +1,22 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: NotionExportPreviewView.swift | PURPOSE: Notion Export Preview Sheet | LAYER: UI/Summary
+//
+// DEPENDENCIES:
+//   - Summary (Core/Database/Models/Summary.swift) - Summary data model for preview
+//
+// DEPENDENTS:
+//   - SummaryListView.swift - Presented as sheet for export preview
+//
+// CHANGE IMPACT:
+//   - Standalone sheet component - changes affect SummaryListView presentation
+//   - Contains embedded: PropertyRow helper view
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 struct NotionExportPreviewView: View {

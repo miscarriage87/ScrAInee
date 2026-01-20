@@ -2,13 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<!-- App Sandbox - DEAKTIVIERT für ScreenCaptureKit -->
+	<!-- Für Entwicklung ohne App Store Distribution -->
+	<key>com.apple.security.app-sandbox</key>
 	<false/>
+
+	<!-- Hardened Runtime Exceptions -->
+	<!-- Für ScreenCaptureKit Audio-Capture -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+
+	<!-- Für Accessibility API (Fenstertitel, Hotkeys) -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+
+	<!-- Für Netzwerk-Zugriff (Claude API, Notion API) -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Für Dateisystem-Zugriff (Screenshots, Audio-Dateien) -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- Für Application Support Verzeichnis -->
+	<key>com.apple.security.files.downloads.read-write</key>
+	<true/>
+
+	<!-- Disable Library Validation - erlaubt Laden von Libraries mit unterschiedlichen Team IDs -->
+	<!-- Erforderlich für WhisperKit Framework während lokaler Entwicklung -->
 	<key>com.apple.security.cs.disable-library-validation</key>
-	<false/>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>$(AppIdentifierPrefix)com.cpohl.scrainee</string>
-	</array>
+	<true/>
 </dict>
 </plist>

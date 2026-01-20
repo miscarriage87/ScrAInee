@@ -40,6 +40,9 @@
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Scrainee verwendet Apple Events, um Informationen ueber aktive Anwendungen zu erfassen und festzustellen, wann Meetings aktiv sind.</string>
 
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Scrainee benoetigt Mikrofonzugriff, um Audio waehrend Meetings aufzunehmen und automatisch zu transkribieren.</string>
+
 	<!-- App Category -->
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>

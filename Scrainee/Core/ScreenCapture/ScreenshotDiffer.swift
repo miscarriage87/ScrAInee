@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ScreenshotDiffer.swift | PURPOSE: Perceptual Hashing & Duplikat-Erkennung | LAYER: Core/ScreenCapture
+//
+// DEPENDENCIES: Foundation, CoreGraphics (CGImage, CGContext), Accelerate (nicht aktiv genutzt)
+// DEPENDENTS: FullPipelineE2ETests (quickHash Utility)
+// CHANGE IMPACT: Hash-Algorithmus-Aenderungen (pHash, dHash) beeinflussen Duplikat-Erkennung;
+//                quickHash() wird fuer Test-Vergleiche verwendet
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import CoreGraphics
 import Accelerate

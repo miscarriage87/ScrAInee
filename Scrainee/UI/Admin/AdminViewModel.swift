@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: AdminViewModel.swift | PURPOSE: Datenlogik für Admin-Dashboard | LAYER: UI/Admin
+//
+// DEPENDENCIES: DatabaseManager, StorageManager, AppState, CostEstimator, Meeting, Screenshot
+// DEPENDENTS: AdminDashboardView
+// LISTENS TO: -
+// CHANGE IMPACT: Statistik-Berechnung, DB-Vacuum, Datenbereinigung, Stats-Export
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import Combine
 
@@ -193,7 +207,7 @@ class AdminViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let retentionDays = AppState.shared.retentionDays
+            let retentionDays = AppState.shared.settingsState.retentionDays
             let cutoffDate = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) ?? Date()
 
             // Get screenshots to delete

@@ -1,3 +1,19 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: DisplayManager.swift | PURPOSE: Multi-Monitor-Management & Hash-Tracking | LAYER: Core/ScreenCapture
+//
+// DEPENDENCIES: ScreenCaptureKit (SCShareableContent, SCDisplay), AppKit (NSScreen, NSApplication),
+//               Combine (PassthroughSubject), IOKit (Display-Namen)
+// DEPENDENTS: ScreenCaptureManager (DisplayProviding, HashTracker), MockDisplayManager (Tests),
+//             CaptureToStorageTests, DisplayManagerTests
+// CHANGE IMPACT: DisplayProviding-Protokoll-Aenderungen erfordern Updates in ScreenCaptureManager
+//                und MockDisplayManager; HashTracker ist actor-isolated fuer Thread-Safety
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @preconcurrency import ScreenCaptureKit
 import AppKit
 import Combine

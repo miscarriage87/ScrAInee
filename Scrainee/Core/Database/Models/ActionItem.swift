@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ActionItem.swift | PURPOSE: GRDB Model für Meeting-Aktionspunkte | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED: Meeting (FK: meetingId), MeetingMinutes (FK: minutesId), TranscriptSegment (FK: sourceSegmentId)
+// ENUMS: ActionItemPriority, ActionItemStatus (in dieser Datei definiert)
+// USED BY: DatabaseManager, MeetingMinutesViewModel
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

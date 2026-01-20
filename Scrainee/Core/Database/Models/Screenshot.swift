@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: Screenshot.swift | PURPOSE: GRDB Model für Screenshot-Metadaten | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift, StorageManager (für fileURL)
+// USED BY: DatabaseManager, ScreenCaptureManager, GalleryViewModel, TimelineViewModel, SearchViewModel
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration in DatabaseManager.migrate()
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

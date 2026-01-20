@@ -300,6 +300,58 @@ Die App benötigt:
 
 ---
 
+## Abhängigkeits-Management
+
+### Dokumentation
+
+Dieses Projekt nutzt ein Abhängigkeits-Dokumentationssystem:
+
+- **DEPENDENCY-DOCS.md** - Konzept und Header-Format
+- **UI-ARCHITECTURE.md** - UI-Komponenten und Datenflüsse
+
+### Bei Code-Änderungen IMMER prüfen
+
+1. **VOR der Änderung:**
+   - Lies den Dependency Header der zu ändernden Datei (falls vorhanden)
+   - Identifiziere alle DEPENDENTS (wer nutzt diese Datei)
+   - Prüfe die CHANGE IMPACT Sektion
+
+2. **Kritische Dateien mit vielen Abhängigkeiten:**
+   | Datei | Dependents | Kritische Aspekte |
+   |-------|------------|-------------------|
+   | `AppState.swift` | 9+ Views, HotkeyManager | @Published Props, initializeApp() Reihenfolge |
+   | `DatabaseManager.swift` | 8+ ViewModels | initialize() vor Queries, Migrations |
+   | `MeetingDetector.swift` | 4+ Listener | 5 Notifications, State-Sync mit AppState |
+   | `ScreenCaptureManager.swift` | AppState | Delegate-Callbacks, Multi-Monitor |
+   | `ScraineeApp.swift` | - | 10+ Window-Observer, openWindowAction |
+   | `HotkeyManager.swift` | ScraineeApp | 7 Notifications für Fenster |
+
+3. **Bei Änderungen an Notifications:**
+   - ALLE Listener identifizieren (grep nach Notification.Name)
+   - ScraineeApp.swift Observer aktualisieren
+   - Relevante ViewModels aktualisieren
+
+4. **Bei neuen Views/Features:**
+   - Window in ScraineeApp.swift registrieren
+   - Falls Hotkey: HotkeyManager + ScraineeApp Observer
+   - UI-ARCHITECTURE.md aktualisieren
+
+### Kritische Abhängigkeits-Matrix (Kurzform)
+
+```
+WENN DU ÄNDERST...          → DANN PRÜFE AUCH...
+───────────────────────────────────────────────────────────
+AppState.@Published         → Alle Views mit @EnvironmentObject
+AppState.initializeApp()    → DB init vor Queries, Whisper BLOCKING
+MeetingDetector.post()      → 4+ Listener (AppState, SCM, Coordinator, VM)
+DatabaseManager Schema      → Migrations-Reihenfolge
+ScreenCaptureManager.delegate → AppState Extension
+HotkeyManager.post()        → ScraineeApp window observers
+ScraineeApp.Window()        → HotkeyManager, openWindowAction
+```
+
+---
+
 ## Claude Code Workflow
 
 ### Plan Mode

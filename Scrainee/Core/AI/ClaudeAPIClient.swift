@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ClaudeAPIClient | PURPOSE: Anthropic Claude API Integration | LAYER: Core/AI
+//
+// DEPENDENCIES: KeychainAccess (API-Key Speicherung)
+// DEPENDENTS: SummaryGenerator, MeetingMinutesGenerator, QuickAskView, SettingsView, StartupCheckManager
+// CHANGE IMPACT: API-Aenderungen betreffen alle AI-Features (Summaries, Minutes, QuickAsk)
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import KeychainAccess
 

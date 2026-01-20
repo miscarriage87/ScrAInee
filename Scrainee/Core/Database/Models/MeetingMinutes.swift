@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MeetingMinutes.swift | PURPOSE: GRDB Model für AI-generierte Meeting-Protokolle | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED: Meeting (Foreign Key: meetingId, 1:1 Beziehung)
+// USED BY: DatabaseManager, MeetingMinutesViewModel, SummaryGenerator
+// NOTE: JSON-kodierte Arrays für keyPoints, actionItems, decisions
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MeetingMinutesGenerator | PURPOSE: Meeting-Minutes aus Transkripten | LAYER: Core/AI
+//
+// DEPENDENCIES: ClaudeAPIClient, DatabaseManager
+// DEPENDENTS: MeetingTranscriptionCoordinator, MeetingMinutesViewModel
+// CHANGE IMPACT: Aenderungen betreffen Meeting-Minutes-Generierung und Live-Updates
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Generates structured meeting minutes from transcripts using Claude API

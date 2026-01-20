@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: Meeting.swift | PURPOSE: GRDB Model für Meeting-Sessions mit Transkription | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED MODELS: MeetingScreenshot (Junction), TranscriptSegment, MeetingMinutes, ActionItem
+// USED BY: DatabaseManager, MeetingDetector, MeetingTranscriptionCoordinator, MeetingMinutesViewModel
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration; addTranscriptionColumns() für Migrationen
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

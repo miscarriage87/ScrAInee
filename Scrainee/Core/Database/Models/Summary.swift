@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: Summary.swift | PURPOSE: GRDB Model für AI-generierte Zusammenfassungen | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED: Meeting (Optional Foreign Key: meetingId)
+// USED BY: DatabaseManager, SummaryGenerator, SummaryRequestView
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

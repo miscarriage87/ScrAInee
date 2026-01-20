@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: NotionClient | PURPOSE: Notion API fuer Meeting-Notes Export | LAYER: Core/Integration
+//
+// DEPENDENCIES: KeychainAccess (API-Key/Database-ID Speicherung)
+// DEPENDENTS: AppState, ScraineeApp, MeetingMinutesViewModel, SettingsView, SummaryListView, StartupCheckManager
+// CHANGE IMPACT: Aenderungen betreffen Notion-Export von Meetings und Summaries
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import KeychainAccess
 

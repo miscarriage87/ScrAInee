@@ -1,3 +1,19 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ExportManager.swift | PURPOSE: Export zu MD/JSON/HTML/PDF | LAYER: Services
+//
+// DEPENDENCIES: Foundation, PDFKit, AppKit (NSTextView), DatabaseManager.shared
+// DEPENDENTS: (derzeit keine direkten Aufrufer - prepared for future use)
+// CHANGE IMPACT: Export-Format-Aenderungen beeinflussen Datei-Kompatibilitaet
+//
+// EXPORTIERT: Summary, Meeting, DateRange, FullBackup
+// OUTPUT: ~/Downloads/
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import PDFKit
 import AppKit

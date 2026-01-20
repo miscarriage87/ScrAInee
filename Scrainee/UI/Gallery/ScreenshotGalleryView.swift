@@ -1,3 +1,32 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ScreenshotGalleryView.swift | PURPOSE: Screenshot-Grid mit Filterung | LAYER: UI/Gallery
+//
+// DEPENDENCIES:
+//   - GalleryViewModel: @StateObject fuer Pagination und Filter
+//   - Screenshot (Model): Screenshot-Entitaet
+//   - DatabaseManager (Actor): OCR-Text Abfrage fuer Detail-View
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift: Window-Registration ("gallery-window")
+//   - MenuBarView.swift: Galerie-Button oeffnet dieses Fenster
+//   - HotkeyManager: Cmd+Shift+G oeffnet Galerie
+//
+// CHANGE IMPACT:
+//   - Window-ID Aenderung erfordert Update in ScraineeApp.swift
+//   - HSplitView: Grid links, Detail rechts
+//   - Filter-Popover fuer App/Datum-Filter
+//
+// ENTHALTENE SUB-VIEWS:
+//   - ScreenshotThumbnailView: Grid-Item mit Hover-Actions
+//   - ScreenshotDetailView: Rechte Detail-Ansicht mit OCR-Text
+//   - MetadataRow: Key-Value Anzeige fuer Details
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// Main gallery view for browsing screenshots

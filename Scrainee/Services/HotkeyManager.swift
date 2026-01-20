@@ -1,3 +1,82 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: HotkeyManager.swift
+// PURPOSE: Manages global keyboard shortcuts using Carbon Event API
+// LAYER: Services
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEPENDENCIES (was dieser Service nutzt):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FRAMEWORKS:
+//   - AppKit: NSWorkspace (nicht direkt, aber via Carbon)
+//   - Carbon.HIToolbox: Global Hotkey Registration (RegisterEventHotKey, etc.)
+//
+// INTERNAL:
+//   - PermissionManager.shared: Accessibility-Permission pruefen vor Registration
+//   - AppState.shared.captureState: toggleCapture() bei Cmd+Shift+R
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEPENDENTS (wer diesen Service nutzt):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   - ScraineeApp.swift: registerHotkeys() bei App-Start
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS (KRITISCH - von diesem Service gesendet):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Diese Notifications werden bei Tastenkuerzel-Aktivierung gesendet.
+// Listener muessen in ScraineeApp.swift registriert sein!
+//
+// ┌─────────────────────────────────┬──────────────────────┬─────────────────────────────────┐
+// │ Notification Name               │ Tastenkuerzel        │ Erwartete Aktion                │
+// ├─────────────────────────────────┼──────────────────────┼─────────────────────────────────┤
+// │ .showQuickAsk                   │ Cmd+Shift+A          │ Quick Ask Window oeffnen        │
+// │ .showSearch                     │ Cmd+Shift+F          │ Search Window oeffnen           │
+// │ .showSummary                    │ Cmd+Shift+S          │ Summary Request Window oeffnen  │
+// │ .showTimeline                   │ Cmd+Shift+T          │ Timeline Window oeffnen         │
+// │ .showMeetingMinutes             │ Cmd+Shift+M          │ Meeting Minutes Window oeffnen  │
+// └─────────────────────────────────┴──────────────────────┴─────────────────────────────────┘
+//
+// HINWEIS: Cmd+Shift+R (Toggle Capture) ruft direkt AppState.shared.captureState.toggleCapture()
+//          auf und sendet KEINE Notification.
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// LISTENER LOCATIONS:
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+//   - ScraineeApp.swift:
+//     * .onReceive(NotificationCenter.default.publisher(for: .showQuickAsk))
+//     * .onReceive(NotificationCenter.default.publisher(for: .showSearch))
+//     * .onReceive(NotificationCenter.default.publisher(for: .showSummary))
+//     * .onReceive(NotificationCenter.default.publisher(for: .showTimeline))
+//     * .onReceive(NotificationCenter.default.publisher(for: .showMeetingMinutes))
+//
+//   - ContextOverlayView.swift: Ebenfalls Listener fuer einige Notifications
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHANGE IMPACT:
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// [KRITISCH] Aenderungen an Notification-Namen brechen die Hotkey-Funktionalitaet!
+//            Alle Listener in ScraineeApp.swift muessen synchron angepasst werden.
+//
+// [KRITISCH] Neue Hotkeys erfordern:
+//            1. Neuen Case in HotkeyID enum
+//            2. registerHotkey() Aufruf in registerHotkeys()
+//            3. Case-Handler in handleHotkey()
+//            4. Notification.Name Extension (falls Notification genutzt)
+//            5. Listener in ScraineeApp.swift
+//
+// [WICHTIG]  Accessibility-Permission ist PFLICHT fuer Hotkey-Funktion.
+//            Ohne Permission werden keine Hotkeys registriert.
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import AppKit
 import Carbon.HIToolbox
 
@@ -131,17 +210,17 @@ final class HotkeyManager {
         Task { @MainActor in
             switch HotkeyID(rawValue: hotKeyID.id) {
             case .quickAsk:
-                NotificationCenter.default.post(name: .showQuickAsk, object: nil)
+                NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "quickask"])
             case .toggleCapture:
-                AppState.shared.toggleCapture()
+                AppState.shared.captureState.toggleCapture()
             case .search:
-                NotificationCenter.default.post(name: .showSearch, object: nil)
+                NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "search"])
             case .summary:
-                NotificationCenter.default.post(name: .showSummary, object: nil)
+                NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "summary"])
             case .timeline:
-                NotificationCenter.default.post(name: .showTimeline, object: nil)
+                NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "timeline"])
             case .meetingMinutes:
-                NotificationCenter.default.post(name: .showMeetingMinutes, object: nil)
+                NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "meetingminutes"])
             case .none:
                 break
             }
@@ -154,9 +233,19 @@ final class HotkeyManager {
 // MARK: - Notification Names
 
 extension Notification.Name {
+    /// Generische Window-Request Notification (ersetzt individuelle show* Notifications)
+    /// userInfo: ["windowId": String] - Window ID aus WindowConfig.registry
+    static let windowRequested = Notification.Name("com.scrainee.windowRequested")
+
+    // MARK: - Legacy Notifications (deprecated, für Backward Compatibility)
+    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
     static let showQuickAsk = Notification.Name("com.scrainee.showQuickAsk")
+    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
     static let showSearch = Notification.Name("com.scrainee.showSearch")
+    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
     static let showSummary = Notification.Name("com.scrainee.showSummary")
+    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
     static let showTimeline = Notification.Name("com.scrainee.showTimeline")
+    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
     static let showMeetingMinutes = Notification.Name("com.scrainee.showMeetingMinutes")
 }

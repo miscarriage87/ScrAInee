@@ -1,3 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: StartupCheckManager.swift | PURPOSE: App-Start Health Checks | LAYER: Services
+//
+// DEPENDENCIES: KeychainAccess, DatabaseManager, PermissionManager, ClaudeAPIClient,
+//               NotionClient, WhisperTranscriptionService
+// DEPENDENTS: ScraineeApp.swift (runAllChecks bei Start), MenuBarView (Status-Anzeige)
+// CHANGE IMPACT: Neue Services erfordern neuen ServiceType Case + Check-Methode
+//
+// REQUIRED SERVICES: database, screenCapture (App startet nicht ohne diese)
+// OPTIONAL SERVICES: claudeAPI, notionAPI, whisperModel, accessibility
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import KeychainAccess
 

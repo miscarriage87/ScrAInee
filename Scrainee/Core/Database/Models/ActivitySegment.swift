@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ActivitySegment.swift | PURPOSE: In-Memory Model für App-Aktivitäts-Segmente | LAYER: Core/Database
+//
+// DEPENDENCIES: Foundation (kein GRDB - wird nicht persistiert!)
+// RELATED: Screenshot (Input für buildSegments())
+// USED BY: TimelineViewModel, TimelineSliderView
+// NOTE: Wird aus Screenshots berechnet, nicht in DB gespeichert
+// CHANGE IMPACT: Nur UI-Auswirkungen, keine DB-Migration nötig
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Represents a time segment where the user was active in a specific app

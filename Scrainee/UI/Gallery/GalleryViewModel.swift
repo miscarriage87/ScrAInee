@@ -1,3 +1,28 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: GalleryViewModel.swift | PURPOSE: Pagination und Filter-Logik | LAYER: UI/Gallery
+//
+// DEPENDENCIES:
+//   - DatabaseManager (Actor): Screenshot-Abfragen mit Pagination
+//   - StorageManager: Dateipfad-Aufloesung fuer Screenshots
+//   - Screenshot (Model): Screenshot-Entitaet
+//   - GRDB: Datenbank-Framework (Import)
+//
+// DEPENDENTS:
+//   - ScreenshotGalleryView.swift: @StateObject Consumer
+//   - ScreenshotThumbnailView: @ObservedObject fuer Actions
+//   - ScreenshotDetailView: @ObservedObject fuer Actions
+//
+// CHANGE IMPACT:
+//   - Page-Size hier definiert (50 Screenshots pro Seite)
+//   - Debounce-Zeit fuer Suche (300ms)
+//   - Filter-Properties beeinflussen alle Abfragen
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import Combine
 import GRDB

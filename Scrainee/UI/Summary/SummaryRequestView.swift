@@ -1,3 +1,26 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SummaryRequestView.swift | PURPOSE: AI Summary Creation UI | LAYER: UI/Summary
+//
+// DEPENDENCIES:
+//   - AppState (App/AppState.swift) - Global app state via @EnvironmentObject
+//   - SummaryGenerator (Core/AI/SummaryGenerator.swift) - AI summary generation
+//   - DatabaseManager (Core/Database/DatabaseManager.swift) - Screenshot & summary persistence
+//   - Summary (Core/Database/Models/Summary.swift) - Summary data model
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift - Window registration with id: "summary"
+//   - MenuBarView.swift - Opens via "Zusammenfassung erstellen" button
+//
+// CHANGE IMPACT:
+//   - Window ID "summary" used in openWindow() calls
+//   - SummaryRequestViewModel embedded - extract if reuse needed
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 struct SummaryRequestView: View {

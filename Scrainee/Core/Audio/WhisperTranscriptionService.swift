@@ -1,3 +1,96 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: WhisperTranscriptionService.swift
+// PURPOSE: Lokale Sprach-zu-Text-Transkription mittels WhisperKit (CoreML).
+//          Verwaltet Modell-Download, -Laden und Transkription von Audio.
+// LAYER: Core/Audio
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENCIES (was diese Datei NUTZT)                                        │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// IMPORTS:
+//   - Foundation: FileManager, URL, NSLock
+//   - WhisperKit: WhisperKit, WhisperKitConfig, TranscriptionResult
+//
+// EXTERNAL PACKAGE:
+//   - WhisperKit (argmaxinc/WhisperKit): CoreML-basierte Whisper-Implementierung
+//   - Modell: openai/whisper-large-v3 (~3 GB)
+//
+// FILE SYSTEM:
+//   - Modell-Pfad: ~/Library/Application Support/Scrainee/models/argmaxinc/
+//                  whisperkit-coreml/openai_whisper-large-v3/
+//   - Alternative: ~/Library/Application Support/Scrainee/whisper-models/...
+//   - Prüft: AudioEncoder.mlmodelc + TextDecoder.mlmodelc
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENTS (wer diese Datei NUTZT)                                          │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// DIREKTE NUTZER:
+//
+//   MeetingTranscriptionCoordinator.shared:
+//     - isModelLoaded: Prüft ob Modell bereit
+//     - isModelDownloaded: Prüft ob Modell auf Disk
+//     - loadModel(): Lädt Modell in Speicher
+//     - transcribe(audioURL:meetingId:): Transkribiert Audio-Datei
+//     - transcribeChunk(AudioChunk): Echtzeit-Transkription
+//
+//   SettingsView.swift:
+//     - downloadModel(): Startet Modell-Download
+//     - isModelDownloaded: UI-Status
+//     - downloadProgress: Download-Fortschritt
+//     - loadingStatus: Status-Text
+//
+//   StartupCheckManager.swift:
+//     - isModelDownloaded: Health-Check beim App-Start
+//     - isModelLoaded: Prüft Modell-Status
+//
+//   AppState.swift:
+//     - isModelDownloaded: Global verfügbarer Status
+//     - isModelLoaded: Global verfügbarer Status
+//
+// PUBLIC API:
+//   - isModelDownloaded: Bool (computed) - Modell auf Disk?
+//   - isModelLoaded: Bool (thread-safe) - Modell im RAM?
+//   - isTranscribing: Bool (thread-safe) - Transkription aktiv?
+//   - downloadProgress: Double (thread-safe) - Download-Fortschritt 0-1
+//   - loadingStatus: String (thread-safe) - UI-Statustext
+//   - error: String? (thread-safe) - Fehlermeldung
+//   - modelSizeDescription: String - "~3 GB"
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ CHANGE IMPACT - KRITISCHE HINWEISE                                          │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// 1. THREAD-SAFETY:
+//    - NICHT @MainActor wegen WhisperKit nonisolated Methoden
+//    - NSLock für alle State-Properties
+//    - @unchecked Sendable für Cross-Actor Nutzung
+//
+// 2. MODELL-PFADE:
+//    - WhisperKit speichert unter argmaxinc/whisperkit-coreml/
+//    - getModelPaths() prüft mehrere mögliche Locations
+//    - Änderungen am Pfad erfordern Anpassung in isModelDownloaded
+//
+// 3. AUDIO-ANFORDERUNGEN:
+//    - Input: 16kHz Mono Float-Samples (AudioChunk.samples)
+//    - AudioCaptureManager liefert bereits konvertiertes Format
+//
+// 4. TRANSCRIPTION RESULTS:
+//    - TranscriptSegment enthält: text, startTime, endTime, confidence, language
+//    - confidence ist avgLogprob (negativ, höher = besser)
+//    - Leere Texte werden gefiltert
+//
+// 5. MEMORY MANAGEMENT:
+//    - unloadModel() gibt WhisperKit-Instanz frei
+//    - Large-v3 Modell benötigt ~3-4 GB RAM während Transkription
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import WhisperKit
 
@@ -60,27 +153,38 @@ final class WhisperTranscriptionService: @unchecked Sendable {
     // MARK: - Model Management
 
     /// Checks if the Whisper model is downloaded
-    /// WhisperKit speichert Modelle unter: models/argmaxinc/whisperkit-coreml/openai_whisper-{variant}/
+    /// WhisperKit speichert Modelle unter verschiedenen Pfaden je nach Download-Methode
     var isModelDownloaded: Bool {
-        let basePath = getModelBasePath()
+        let paths = getModelPaths()
 
-        // WhisperKit's tatsächliche Verzeichnisstruktur
-        let whisperKitPath = basePath
-            .appendingPathComponent("models")
-            .appendingPathComponent("argmaxinc")
-            .appendingPathComponent("whisperkit-coreml")
-            .appendingPathComponent("openai_whisper-\(modelVariant)")
+        for path in paths {
+            let audioEncoderPath = path.appendingPathComponent("AudioEncoder.mlmodelc")
+            let textDecoderPath = path.appendingPathComponent("TextDecoder.mlmodelc")
 
-        // Prüfe ob das Modell-Verzeichnis existiert und die wichtigsten Dateien enthält
-        let audioEncoderPath = whisperKitPath.appendingPathComponent("AudioEncoder.mlmodelc")
-        let textDecoderPath = whisperKitPath.appendingPathComponent("TextDecoder.mlmodelc")
+            let exists = FileManager.default.fileExists(atPath: audioEncoderPath.path) &&
+                         FileManager.default.fileExists(atPath: textDecoderPath.path)
 
-        let exists = FileManager.default.fileExists(atPath: audioEncoderPath.path) &&
-                     FileManager.default.fileExists(atPath: textDecoderPath.path)
+            if exists {
+                return true
+            }
+        }
 
-        print("WhisperTranscriptionService: Checking model at \(whisperKitPath.path) - exists: \(exists)")
+        return false
+    }
 
-        return exists
+    /// Gets all possible paths where the Whisper model could be stored
+    private func getModelPaths() -> [URL] {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let scraineeDir = appSupport.appendingPathComponent("Scrainee")
+
+        let modelSubpath = "models/argmaxinc/whisperkit-coreml/openai_whisper-\(modelVariant)"
+
+        return [
+            // Primärer Pfad (direkt unter Scrainee)
+            scraineeDir.appendingPathComponent(modelSubpath),
+            // Sekundärer Pfad (unter whisper-models)
+            scraineeDir.appendingPathComponent("whisper-models").appendingPathComponent(modelSubpath)
+        ]
     }
 
     /// Gets the model size description

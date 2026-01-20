@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MeetingMinutesView.swift | PURPOSE: Meeting-Protokoll & Transkript-Anzeige | LAYER: UI/MeetingMinutes
+//
+// DEPENDENCIES: MeetingMinutesViewModel, MeetingTranscriptionCoordinator, Meeting, TranscriptSegment, ActionItem, MeetingMinutes
+// DEPENDENTS: ScraineeApp (Window-Registration), MeetingMinutesWindow
+// LISTENS TO: -
+// CHANGE IMPACT: Änderungen beeinflussen Meeting-Protokoll-Darstellung, Notion-Export-UI, Action-Items-Management
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// Main view for displaying meeting minutes and transcript

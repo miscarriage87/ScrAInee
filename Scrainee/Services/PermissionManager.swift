@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: PermissionManager.swift | PURPOSE: System-Berechtigungen verwalten | LAYER: Services
+//
+// DEPENDENCIES: ScreenCaptureKit (SCShareableContent), AppKit (NSWorkspace), AXIsProcessTrusted
+// DEPENDENTS: ScraineeApp, AppState, HotkeyManager, StartupCheckManager, ScreenCaptureManager,
+//             MenuBarView, SettingsView
+// CHANGE IMPACT: Aenderungen beeinflussen ALLE Capture- und Hotkey-Funktionen
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @preconcurrency import ScreenCaptureKit
 import AppKit
 

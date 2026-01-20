@@ -258,7 +258,7 @@ final class OCRE2ETests: XCTestCase {
         }
 
         // Act
-        let result = await ocrManager.recognizeTextFast(in: image)
+        _ = await ocrManager.recognizeTextFast(in: image)
 
         // Assert - Fast mode kann nil zurückgeben bei programmatischen Bildern
         // Das ist akzeptabel, da es ein Geschwindigkeits-Trade-off ist

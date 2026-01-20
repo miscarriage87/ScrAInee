@@ -1,3 +1,40 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MenuBarView.swift | PURPOSE: Main Menu Bar UI (Primary User Interface) | LAYER: UI/MenuBar
+//
+// DEPENDENCIES:
+//   - AppState (App/AppState.swift) - Global state: capture status, stats, meeting info
+//   - StartupCheckManager (Services/StartupCheckManager.swift) - System health checks display
+//   - PermissionManager (Services/PermissionManager.swift) - Permission status & requests
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift - MenuBarExtra content provider
+//
+// OPENS WINDOWS (via openWindow):
+//   - "quickask" -> QuickAskView (Cmd+Shift+A)
+//   - "summary" -> SummaryRequestView (Cmd+Shift+S)
+//   - "summarylist" -> SummaryListView
+//   - "search" -> SearchView (Cmd+Shift+F)
+//   - "gallery" -> ScreenshotGalleryView (Cmd+Shift+G)
+//   - "timeline" -> TimelineView (Cmd+Shift+T)
+//   - "meetingminutes" -> MeetingMinutesView (Cmd+Shift+M)
+//   - Settings via SettingsLink (macOS 14+)
+//
+// CHANGE IMPACT:
+//   - CRITICAL: Primary UI entry point - changes affect all user interactions
+//   - Window IDs must match ScraineeApp.swift Window() registrations
+//   - Contains embedded: MenuButton, StatRow, ShortcutHint components
+//
+// PROPERTY USAGE (via appState):
+//   - captureState: isCapturing, screenshotCount, totalScreenshots, storageUsed, lastCaptureTime, toggleCapture()
+//   - meetingState: isMeetingActive, currentMeeting, isGeneratingSummary
+//   - uiState: showPermissionAlert
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 struct MenuBarView: View {
@@ -14,7 +51,7 @@ struct MenuBarView: View {
                 .padding(.vertical, 8)
 
             // Permission alert if needed
-            if appState.showPermissionAlert {
+            if appState.uiState.showPermissionAlert {
                 permissionSection
                 
                 Divider()
@@ -62,10 +99,10 @@ struct MenuBarView: View {
 
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(appState.isCapturing ? Color.red : Color.gray)
+                        .fill(appState.captureState.isCapturing ? Color.red : Color.gray)
                         .frame(width: 8, height: 8)
 
-                    Text(appState.isCapturing ? "Aufnahme aktiv" : "Pausiert")
+                    Text(appState.captureState.isCapturing ? "Aufnahme aktiv" : "Pausiert")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -74,13 +111,13 @@ struct MenuBarView: View {
             Spacer()
 
             // Toggle button
-            Button(action: { appState.toggleCapture() }) {
-                Image(systemName: appState.isCapturing ? "pause.circle.fill" : "play.circle.fill")
+            Button(action: { appState.captureState.toggleCapture() }) {
+                Image(systemName: appState.captureState.isCapturing ? "pause.circle.fill" : "play.circle.fill")
                     .font(.title)
-                    .foregroundColor(appState.isCapturing ? .red : .green)
+                    .foregroundColor(appState.captureState.isCapturing ? .red : .green)
             }
             .buttonStyle(.plain)
-            .help(appState.isCapturing ? "Aufnahme pausieren" : "Aufnahme starten")
+            .help(appState.captureState.isCapturing ? "Aufnahme pausieren" : "Aufnahme starten")
         }
     }
 
@@ -247,19 +284,19 @@ struct MenuBarView: View {
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            StatRow(icon: "camera.fill", label: "Screenshots (Sitzung)", value: "\(appState.screenshotCount)")
-            StatRow(icon: "photo.stack", label: "Gesamt", value: "\(appState.totalScreenshots)")
-            StatRow(icon: "internaldrive", label: "Speicher", value: appState.storageUsed)
+            StatRow(icon: "camera.fill", label: "Screenshots (Sitzung)", value: "\(appState.captureState.screenshotCount)")
+            StatRow(icon: "photo.stack", label: "Gesamt", value: "\(appState.captureState.totalScreenshots)")
+            StatRow(icon: "internaldrive", label: "Speicher", value: appState.captureState.storageUsed)
 
-            if let lastCapture = appState.lastCaptureTime {
+            if let lastCapture = appState.captureState.lastCaptureTime {
                 StatRow(icon: "clock", label: "Letzter Screenshot", value: lastCapture.formatted(.relative(presentation: .named)))
             }
 
-            if appState.isMeetingActive {
+            if appState.meetingState.isMeetingActive {
                 HStack(spacing: 6) {
                     Image(systemName: "video.fill")
                         .foregroundColor(.blue)
-                    Text("Meeting aktiv: \(appState.currentMeeting?.appName ?? "Unbekannt")")
+                    Text("Meeting aktiv: \(appState.meetingState.currentMeeting?.appName ?? "Unbekannt")")
                         .font(.caption)
                         .foregroundColor(.blue)
                 }
@@ -334,7 +371,7 @@ struct MenuBarView: View {
                     .fontWeight(.semibold)
             }
 
-            if appState.isGeneratingSummary {
+            if appState.meetingState.isGeneratingSummary {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.7)

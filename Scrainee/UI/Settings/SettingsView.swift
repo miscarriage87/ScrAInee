@@ -1,3 +1,33 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SettingsView.swift | PURPOSE: App Settings (Tabbed Interface) | LAYER: UI/Settings
+//
+// DEPENDENCIES:
+//   - AppState (App/AppState.swift) - Global app state via @EnvironmentObject
+//   - KeychainAccess (External) - Secure credential storage for API keys
+//   - PermissionManager (Services/PermissionManager.swift) - Permission checks & requests
+//   - WhisperTranscriptionService (Core/Audio/WhisperTranscriptionService.swift) - Whisper model management
+//   - ClaudeAPIClient (Core/AI/ClaudeAPIClient.swift) - API key validation
+//   - NotionClient (Core/Integration/NotionClient.swift) - Notion connection test
+//   - StorageManager (Core/Storage/StorageManager.swift) - Storage stats
+//   - RetentionPolicy (Core/Storage/RetentionPolicy.swift) - Cleanup operations
+//   - DatabaseManager (Core/Database/DatabaseManager.swift) - Screenshot count
+//   - SettingsValidator (Services/SettingsValidator.swift) - Input validation
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift - Settings scene registration
+//   - MenuBarView.swift - Opens via SettingsLink (macOS 14+)
+//
+// CHANGE IMPACT:
+//   - Contains 6 embedded tab views: General, Capture, Transcription, AI, Integration, Storage
+//   - API keys stored in Keychain - key names must match KeychainService constants
+//   - AppStorage keys affect app behavior globally
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import KeychainAccess
 

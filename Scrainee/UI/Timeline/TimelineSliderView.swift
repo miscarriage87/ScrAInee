@@ -1,3 +1,28 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: TimelineSliderView.swift | PURPOSE: Zeit-Slider mit Segment-Visualisierung | LAYER: UI/Timeline
+//
+// DEPENDENCIES:
+//   - ActivitySegment (Model): Farbige App-Segmente auf Slider
+//   - TimelineViewModel: @ObservedObject fuer Navigation-Buttons
+//
+// DEPENDENTS:
+//   - TimelineView.swift: Eingebettet im Footer-Bereich
+//
+// CHANGE IMPACT:
+//   - Slider-Value Binding beeinflusst Screenshot-Navigation
+//   - Segment-Farben hier definiert (segmentColors Array)
+//
+// ENTHALTENE SUB-VIEWS:
+//   - TimelineTimeLabels: Start/Ende/Aktuell Zeit-Anzeige
+//   - TimelineNavigationButtons: Vor/Zurueck/Jump Buttons
+//   - TimelineDateNavigation: Tag-Navigation mit Kalender
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// A custom slider for timeline navigation with activity segment visualization

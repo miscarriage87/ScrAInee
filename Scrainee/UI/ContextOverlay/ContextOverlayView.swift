@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ContextOverlayView.swift | PURPOSE: Floating-Overlay für Meeting-Kontext | LAYER: UI/ContextOverlay
+//
+// DEPENDENCIES: AppState, MeetingDetector, DatabaseManager, MeetingSession
+// DEPENDENTS: ScraineeApp (Window-Registration), ContextOverlayWindow
+// LISTENS TO: .showSummary, .showQuickAsk (posts to NotificationCenter)
+// CHANGE IMPACT: Echtzeit-Keyword-Anzeige, Screenshot-Stats, Aufnahme-Toggle, Quick-Actions
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// Floating overlay that shows relevant context during meetings
@@ -268,7 +282,7 @@ final class ContextOverlayViewModel: ObservableObject {
 
     func startMonitoring() {
         // Sync with AppState
-        isRecording = AppState.shared.isCapturing
+        isRecording = AppState.shared.captureState.isCapturing
         currentMeeting = MeetingDetector.shared.activeMeeting
 
         if currentMeeting != nil {
@@ -293,21 +307,21 @@ final class ContextOverlayViewModel: ObservableObject {
     }
 
     func toggleRecording() {
-        AppState.shared.toggleCapture()
-        isRecording = AppState.shared.isCapturing
+        AppState.shared.captureState.toggleCapture()
+        isRecording = AppState.shared.captureState.isCapturing
     }
 
     func requestSummary() {
-        NotificationCenter.default.post(name: .showSummary, object: nil)
+        NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "summary"])
     }
 
     func openQuickAsk() {
-        NotificationCenter.default.post(name: .showQuickAsk, object: nil)
+        NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "quickask"])
     }
 
     private func updateStats() {
-        isRecording = AppState.shared.isCapturing
-        screenshotCount = AppState.shared.screenshotCount
+        isRecording = AppState.shared.captureState.isCapturing
+        screenshotCount = AppState.shared.captureState.screenshotCount
 
         // Update meeting duration
         if let start = meetingStartTime ?? currentMeeting?.startTime {

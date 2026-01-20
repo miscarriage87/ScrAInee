@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: TranscriptSegment.swift | PURPOSE: GRDB Model für Transkriptions-Segmente mit FTS5 | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED: Meeting (Foreign Key: meetingId), transcriptFts (FTS5 Virtual Table)
+// USED BY: DatabaseManager, WhisperTranscriptionService, MeetingMinutesViewModel
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration; FTS5-Trigger in createFTSTable()
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

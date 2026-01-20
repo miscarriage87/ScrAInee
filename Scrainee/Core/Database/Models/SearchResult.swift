@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SearchResult.swift | PURPOSE: Read-only Model für FTS5-Suchergebnisse | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift, StorageManager (für fileURL)
+// NOTE: Nur FetchableRecord, kein PersistableRecord (nicht gespeichert, nur gelesen)
+// USED BY: DatabaseManager.searchOCR(), SearchViewModel
+// CHANGE IMPACT: Änderungen müssen mit SQL-Query in DatabaseManager.searchOCR() synchron sein
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

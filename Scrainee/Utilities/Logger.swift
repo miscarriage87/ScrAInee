@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: Logger.swift | PURPOSE: Centralized os.log wrapper | LAYER: Utilities
+//
+// DEPENDENCIES: os.log (Apple System Framework)
+// DEPENDENTS: FileLogger, ErrorManager, (app-wide logging)
+// CHANGE IMPACT: Log categories affect Console.app filtering; changes propagate app-wide
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import os.log
 

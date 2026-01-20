@@ -1,3 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: FileLogger.swift | PURPOSE: Datei-basiertes Logging mit Rotation | LAYER: Services
+//
+// DEPENDENCIES: Foundation, os.log (OS Logger), StorageManager.shared (Log-Verzeichnis)
+// DEPENDENTS: ErrorManager.shared (log(error:)), alle Komponenten via debug/info/warning/error
+// CHANGE IMPACT: Log-Format-Aenderungen beeinflussen Log-Parsing und Export
+//
+// LOG-PFAD: ~/Library/Application Support/Scrainee/logs/
+// MAX-SIZE: 10 MB (dann Rotation)
+// RETENTION: 7 Tage (cleanupOldLogs)
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import os.log
 

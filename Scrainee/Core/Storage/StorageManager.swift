@@ -1,8 +1,34 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: StorageManager.swift | PURPOSE: Dateisystem-Management & Pfad-Verwaltung | LAYER: Core/Storage
+//
+// DEPENDENCIES: Foundation (FileManager, URL, ByteCountFormatter)
+// DEPENDENTS: ScreenCaptureManager, ImageCompressor, RetentionPolicy, DatabaseManager,
+//             AppState, SettingsView, GalleryViewModel, AdminViewModel, FileLogger,
+//             AudioCaptureManager, TestStorageManager (Tests), diverse E2E-Tests
+// CHANGE IMPACT: Pfad-Aenderungen (applicationSupportDirectory, screenshotsDirectory)
+//                betreffen ALLE Komponenten die Dateien speichern/lesen;
+//                .shared Singleton - Aenderungen haben globale Auswirkungen
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Manages file system storage for Scrainee
 final class StorageManager: @unchecked Sendable {
     static let shared = StorageManager()
+
+    // MARK: - Size Cache
+
+    /// Cached directory size to avoid expensive recalculations
+    private var cachedDirectorySize: Int64 = 0
+    /// Last time the size was calculated
+    private var lastSizeCalculation: Date = .distantPast
+    /// Interval between size recalculations (60 seconds)
+    private let sizeRecalculationInterval: TimeInterval = 60
 
     // MARK: - Directories
 
@@ -72,9 +98,19 @@ final class StorageManager: @unchecked Sendable {
 
     // MARK: - Storage Stats
 
-    /// Total size of screenshots directory in bytes
+    /// Total size of screenshots directory in bytes (cached for performance)
     var screenshotsStorageSize: Int64 {
-        calculateDirectorySize(screenshotsDirectory)
+        let now = Date()
+        if now.timeIntervalSince(lastSizeCalculation) > sizeRecalculationInterval {
+            cachedDirectorySize = calculateDirectorySizeInternal(screenshotsDirectory)
+            lastSizeCalculation = now
+        }
+        return cachedDirectorySize
+    }
+
+    /// Forces a recalculation of the storage size
+    func invalidateSizeCache() {
+        lastSizeCalculation = .distantPast
     }
 
     /// Calculates storage used (alias for screenshotsStorageSize for backward compatibility)
@@ -110,6 +146,9 @@ final class StorageManager: @unchecked Sendable {
         let url = screenshotsDirectory.appendingPathComponent(relativePath)
         try FileManager.default.removeItem(at: url)
 
+        // Invalidate size cache after deletion
+        invalidateSizeCache()
+
         // Clean up empty parent directories
         cleanupEmptyDirectories(from: url.deletingLastPathComponent())
     }
@@ -125,6 +164,7 @@ final class StorageManager: @unchecked Sendable {
     func clearAllScreenshots() throws {
         try FileManager.default.removeItem(at: screenshotsDirectory)
         ensureDirectoryExists(screenshotsDirectory)
+        invalidateSizeCache()
     }
 
     // MARK: - Cleanup
@@ -145,7 +185,7 @@ final class StorageManager: @unchecked Sendable {
 
     // MARK: - Helpers
 
-    private func calculateDirectorySize(_ directory: URL) -> Int64 {
+    private func calculateDirectorySizeInternal(_ directory: URL) -> Int64 {
         let resourceKeys: Set<URLResourceKey> = [.isDirectoryKey, .fileSizeKey]
         var totalSize: Int64 = 0
 

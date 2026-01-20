@@ -1,3 +1,21 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: RetentionPolicy.swift | PURPOSE: Automatische Screenshot-Bereinigung | LAYER: Core/Storage
+//
+// DEPENDENCIES: Foundation (Timer, Calendar, Date, UserDefaults),
+//               DatabaseManager (.shared - getScreenshotsBefore, deleteScreenshotsBefore, vacuum),
+//               StorageManager (.shared - deleteScreenshot, clearAllScreenshots)
+// DEPENDENTS: ScraineeApp (startScheduledCleanup bei App-Start), SettingsView (manuelle Cleanup-Trigger),
+//             DatabaseManager (vacuum nach Cleanup)
+// CHANGE IMPACT: Cleanup-Logik betrifft Datenspeicherung langfristig;
+//                .cleanupCompleted Notification informiert UI ueber Ergebnisse;
+//                actor-isolated fuer Thread-Safety bei Background-Cleanup
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Manages automatic cleanup of old screenshots based on retention settings

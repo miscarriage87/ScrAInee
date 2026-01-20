@@ -1,3 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ImageCompressor.swift | PURPOSE: HEIC-Kompression & Thumbnail-Generierung | LAYER: Core/Storage
+//
+// DEPENDENCIES: Foundation, ImageIO (CGImageSource, CGImageDestination),
+//               CoreGraphics (CGImage, CGContext), UniformTypeIdentifiers (UTType.heic, UTType.jpeg),
+//               StorageManager (.shared.screenshotsDirectory)
+// DEPENDENTS: ScreenCaptureManager (saveAsHEIC), SummaryGenerator (loadImageDataForAPI),
+//             SearchView (Thumbnail-Anzeige), StorageE2ETests
+// CHANGE IMPACT: HEIC-Quality-Aenderungen beeinflussen Speicherverbrauch;
+//                loadImageDataForAPI() konvertiert HEIC->JPEG fuer Claude API Kompatibilitaet
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import ImageIO
 import CoreGraphics

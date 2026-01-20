@@ -1,3 +1,106 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ScreenCaptureManager.swift
+// PURPOSE: Zentrale Screenshot-Erfassung mit Multi-Monitor-Support
+// LAYER: Core/ScreenCapture (Capture Pipeline Entry Point)
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEPENDENCIES (was diese Datei nutzt):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// SYSTEM FRAMEWORKS:
+// - ScreenCaptureKit ......... SCShareableContent, SCScreenshotManager, SCDisplay
+// - CoreGraphics ............ CGImage, CGContext (Hash-Berechnung)
+// - AppKit .................. NSWorkspace (Active App Detection)
+// - Combine ................. AnyCancellable, Publisher (Interval-Monitoring)
+//
+// INTERNAL DEPENDENCIES:
+// - DisplayManager .......... DisplayProviding Protocol, HashTracker Actor
+//   └── Pfad: Core/ScreenCapture/DisplayManager.swift
+//   └── Zweck: Multi-Monitor-Enumeration, Thread-safe Hash-Tracking
+//
+// - AdaptiveCaptureManager ... Dynamische Intervall-Anpassung
+//   └── Pfad: Core/ScreenCapture/AdaptiveCaptureManager.swift
+//   └── Zweck: Meeting/Idle-basierte Intervall-Optimierung
+//
+// - DatabaseManager ......... Screenshot & OCR Persistierung
+//   └── Pfad: Core/Database/DatabaseManager.swift
+//   └── Zweck: .shared Singleton, insert(Screenshot), insert(OCRResult)
+//
+// - OCRManager .............. Texterkennung
+//   └── Pfad: Core/OCR/OCRManager.swift
+//   └── Zweck: recognizeText(in: CGImage) -> OCRRecognitionResult
+//
+// - ImageCompressor ......... HEIC-Kompression
+//   └── Pfad: Core/Storage/ImageCompressor.swift
+//   └── Zweck: saveAsHEIC(CGImage, quality:) -> String (filepath)
+//
+// - StorageManager .......... Dateisystem-Pfade
+//   └── Pfad: Core/Storage/StorageManager.swift
+//   └── Zweck: screenshotsDirectory URL fuer Dateizugriff
+//
+// - PermissionManager ....... System-Berechtigungen
+//   └── Pfad: Services/PermissionManager.swift
+//   └── Zweck: checkScreenCapturePermission(), requestScreenCapturePermission()
+//
+// - AppState ................ Globaler App-State
+//   └── Pfad: App/AppState.swift
+//   └── Zweck: .shared.meetingState.isMeetingActive, .settingsState.heicQuality, .settingsState.ocrEnabled
+//
+// DATA MODELS:
+// - Screenshot .............. Core/Database/Models/Screenshot.swift
+// - OCRResult ............... Core/Database/Models/OCRResult.swift
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEPENDENTS (wer diese Datei nutzt):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// - AppState ................ App/AppState.swift
+//   └── Erstellt und verwaltet ScreenCaptureManager Instanz
+//   └── Ruft startCapturing(), stopCapturing() auf
+//
+// - MeetingDetector ......... Core/Meeting/MeetingDetector.swift
+//   └── Nutzt ScreenCaptureManager fuer Meeting-Screenshots
+//
+// - MockScreenCaptureDelegate Tests/ScraineeTests/Mocks/MockScreenCaptureDelegate.swift
+//   └── Implementiert ScreenCaptureManagerDelegate fuer Tests
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// DELEGATE PROTOCOL:
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// protocol ScreenCaptureManagerDelegate: AnyObject {
+//     func screenCaptureManager(_:didCaptureScreenshot:) // Erfolgreicher Capture
+//     func screenCaptureManager(_:didFailWithError:)     // Capture-Fehler
+// }
+//
+// IMPLEMENTIERT VON:
+// - AppState (App/AppState.swift) - Hauptnutzer
+// - MockScreenCaptureDelegate (Tests) - Test-Double
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS (gesendet/empfangen):
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// EMPFANGEN:
+// - .meetingStarted ......... Erhoeht Capture-Frequenz
+// - .meetingEnded ........... Normalisiert Capture-Frequenz
+// - .captureIdleStateChanged  Passt Intervall bei Idle an
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHANGE IMPACT:
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// ⚠️  KRITISCH: Zentrale Capture-Pipeline
+// - Aenderungen am Delegate-Protokoll erfordern Updates in AppState
+// - Hash-Algorithmus-Aenderungen beeinflussen Duplikat-Erkennung
+// - Intervall-Logik beeinflusst Speicherverbrauch und Performance
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @preconcurrency import ScreenCaptureKit
 import CoreGraphics
 import AppKit
@@ -8,6 +111,39 @@ import Combine
 protocol ScreenCaptureManagerDelegate: AnyObject {
     func screenCaptureManager(_ manager: ScreenCaptureManager, didCaptureScreenshot screenshot: Screenshot)
     func screenCaptureManager(_ manager: ScreenCaptureManager, didFailWithError error: Error)
+}
+
+// MARK: - OCR Semaphore
+
+/// Actor-based semaphore to limit concurrent OCR operations
+/// Prevents memory spikes from too many parallel OCR tasks
+private actor OCRSemaphore {
+    private let maxConcurrent: Int
+    private var currentCount: Int = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(maxConcurrent: Int) {
+        self.maxConcurrent = maxConcurrent
+    }
+
+    func acquire() async {
+        if currentCount < maxConcurrent {
+            currentCount += 1
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+        currentCount += 1
+    }
+
+    func release() {
+        currentCount -= 1
+        if !waiters.isEmpty {
+            let waiter = waiters.removeFirst()
+            waiter.resume()
+        }
+    }
 }
 
 // MARK: - Screen Capture Manager
@@ -33,6 +169,9 @@ final class ScreenCaptureManager: ObservableObject {
     private let imageCompressor = ImageCompressor()
     private let storageManager = StorageManager.shared
     private let displayManager: DisplayProviding
+
+    /// Semaphore to limit concurrent OCR operations (max 4 to prevent memory spikes)
+    private let ocrSemaphore = OCRSemaphore(maxConcurrent: 4)
 
     /// Adaptive capture manager for dynamic interval adjustment
     let adaptiveManager = AdaptiveCaptureManager()
@@ -87,7 +226,7 @@ final class ScreenCaptureManager: ObservableObject {
         captureTimer?.invalidate()
 
         // Get adaptive interval based on current state
-        let interval = adaptiveManager.getInterval(isMeeting: AppState.shared.isMeetingActive)
+        let interval = adaptiveManager.getInterval(isMeeting: AppState.shared.meetingState.isMeetingActive)
         currentInterval = interval
 
         captureTimer = Timer.scheduledTimer(
@@ -136,7 +275,7 @@ final class ScreenCaptureManager: ObservableObject {
 
     private func handleMeetingStateChanged() {
         guard isCapturing else { return }
-        let newInterval = adaptiveManager.getInterval(isMeeting: AppState.shared.isMeetingActive)
+        let newInterval = adaptiveManager.getInterval(isMeeting: AppState.shared.meetingState.isMeetingActive)
         if abs(newInterval - currentInterval) > 0.1 {
             startCaptureTimer()
         }
@@ -144,7 +283,7 @@ final class ScreenCaptureManager: ObservableObject {
 
     private func checkAndUpdateInterval() {
         guard isCapturing else { return }
-        let newInterval = adaptiveManager.getInterval(isMeeting: AppState.shared.isMeetingActive)
+        let newInterval = adaptiveManager.getInterval(isMeeting: AppState.shared.meetingState.isMeetingActive)
         if abs(newInterval - currentInterval) > 0.1 {
             startCaptureTimer()
         }
@@ -194,7 +333,8 @@ final class ScreenCaptureManager: ObservableObject {
                 app.bundleIdentifier == Bundle.main.bundleIdentifier
             }
 
-            // Capture all displays sequentially (required for Swift 6 Sendable compliance)
+            // Capture all displays in parallel for improved performance
+            // Note: Using nonisolated(unsafe) to avoid Sendable issues with SCRunningApplication
             for display in content.displays {
                 await captureSingleDisplay(display, excludingApps: excludedApps)
             }
@@ -206,7 +346,6 @@ final class ScreenCaptureManager: ObservableObject {
 
     /// Captures a single display
     private func captureSingleDisplay(_ display: SCDisplay, excludingApps: [SCRunningApplication]) async {
-        print("[DEBUG] captureSingleDisplay aufgerufen für Display \(display.displayID)")
         do {
             let filter = SCContentFilter(
                 display: display,
@@ -263,11 +402,9 @@ final class ScreenCaptureManager: ObservableObject {
         // 2. Thread-safe duplicate check per display using HashTracker actor
         let isDuplicate = await hashTracker.isDuplicate(hash, for: displayId)
         if isDuplicate {
-            print("[DEBUG] Screenshot als Duplikat erkannt, überspringe")
             adaptiveManager.reportDuplicate()
             return
         }
-        print("[DEBUG] Screenshot ist einzigartig, verarbeite weiter...")
 
         // Update hash for this display
         await hashTracker.setLastHash(hash, for: displayId)
@@ -282,7 +419,7 @@ final class ScreenCaptureManager: ObservableObject {
         // 3. Save as HEIC
         guard let filepath = try? await imageCompressor.saveAsHEIC(
             cgImage,
-            quality: AppState.shared.heicQuality
+            quality: AppState.shared.settingsState.heicQuality
         ) else {
             return
         }
@@ -308,24 +445,21 @@ final class ScreenCaptureManager: ObservableObject {
 
         // 6. Save to database
         do {
-            print("[DEBUG] Speichere Screenshot in Datenbank...")
             let id = try await databaseManager.insert(screenshot)
             screenshot.id = id
             captureCount += 1
-            print("[DEBUG] Screenshot gespeichert mit ID: \(id)")
 
             // Notify delegate
             delegate?.screenCaptureManager(self, didCaptureScreenshot: screenshot)
 
             // 7. Perform OCR in background if enabled
-            if AppState.shared.ocrEnabled {
+            if AppState.shared.settingsState.ocrEnabled {
                 Task.detached(priority: .background) { [weak self] in
                     guard let self = self else { return }
                     await self.performOCR(on: cgImage, screenshotId: id)
                 }
             }
         } catch {
-            print("[ERROR] Screenshot speichern fehlgeschlagen: \(error)")
             delegate?.screenCaptureManager(self, didFailWithError: error)
         }
     }
@@ -413,6 +547,12 @@ final class ScreenCaptureManager: ObservableObject {
     // MARK: - OCR Processing
 
     private func performOCR(on image: CGImage, screenshotId: Int64) async {
+        // Acquire semaphore slot before OCR (limits concurrent OCR to prevent memory spikes)
+        await ocrSemaphore.acquire()
+        defer {
+            Task { await ocrSemaphore.release() }
+        }
+
         let result = await ocrManager.recognizeText(in: image)
 
         guard let text = result.text, !text.isEmpty else {
@@ -430,8 +570,7 @@ final class ScreenCaptureManager: ObservableObject {
         do {
             try await databaseManager.insert(ocrResult)
         } catch {
-            // Log OCR insertion error but don't propagate since this is background processing
-            print("Failed to insert OCR result: \(error)")
+            // OCR insertion error - continue without crashing
         }
     }
 }

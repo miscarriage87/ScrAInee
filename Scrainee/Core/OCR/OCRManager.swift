@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: OCRManager | PURPOSE: OCR-Texterkennung via Vision Framework | LAYER: Core/OCR
+//
+// DEPENDENCIES: Vision (Apple), NaturalLanguage (Spracherkennung), CoreGraphics
+// DEPENDENTS: ScreenCaptureManager, DatabaseManager, E2E-Tests
+// CHANGE IMPACT: Aenderungen betreffen Texterkennung aller Screenshots
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @preconcurrency import Vision
 import CoreGraphics
 import Foundation

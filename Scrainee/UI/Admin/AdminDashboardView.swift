@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: AdminDashboardView.swift | PURPOSE: Statistik & Analytics Dashboard | LAYER: UI/Admin
+//
+// DEPENDENCIES: AdminViewModel, Meeting, MeetingStatus, CostEstimator
+// DEPENDENTS: ScraineeApp (Window-Registration), SettingsView (Navigation)
+// LISTENS TO: -
+// CHANGE IMPACT: Admin-Statistiken, Charts, Meeting-Übersicht, Quick-Actions (DB-Vacuum, Cleanup, Export)
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import Charts
 

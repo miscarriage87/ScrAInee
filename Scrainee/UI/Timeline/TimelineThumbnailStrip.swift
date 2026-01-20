@@ -1,3 +1,29 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: TimelineThumbnailStrip.swift | PURPOSE: Horizontale Thumbnail-Navigation | LAYER: UI/Timeline
+//
+// DEPENDENCIES:
+//   - TimelineViewModel: @ObservedObject fuer Screenshots und Navigation
+//   - ThumbnailCache (Actor): Async Thumbnail-Loading
+//   - Screenshot (Model): Screenshot-Daten und fileURL
+//
+// DEPENDENTS:
+//   - TimelineView.swift: Eingebettet zwischen Preview und Footer
+//
+// CHANGE IMPACT:
+//   - Thumbnail-Groesse hier definiert (120x75 / 50x50 compact)
+//   - ScrollView auto-scrollt zu currentIndex
+//
+// ENTHALTENE SUB-VIEWS:
+//   - ThumbnailItem (private): Einzelnes Thumbnail mit Zeit-Label
+//   - CompactThumbnailStrip: Alternative kompakte Darstellung
+//   - SmallThumbnail (private): Kleines Thumbnail fuer Compact-Strip
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// A horizontal strip of thumbnails showing screenshots around the current position

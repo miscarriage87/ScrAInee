@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MeetingMinutesViewModel.swift | PURPOSE: Datenlogik für Meeting-Protokoll-View | LAYER: UI/MeetingMinutes
+//
+// DEPENDENCIES: DatabaseManager, MeetingTranscriptionCoordinator, MeetingMinutesGenerator, NotionClient, Meeting, TranscriptSegment, ActionItem, MeetingMinutes
+// DEPENDENTS: MeetingMinutesView
+// LISTENS TO: coordinator.$currentSegments, coordinator.$currentMinutes, coordinator.$actionItems (Combine)
+// CHANGE IMPACT: Beeinflusst Transkript-Laden, Minutes-Generierung, Notion-Export, Action-Items-CRUD
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import Combine
 
@@ -66,6 +80,54 @@ final class MeetingMinutesViewModel: ObservableObject {
             Task {
                 await loadData(for: meeting)
             }
+        } else {
+            // Auto-load most recent meeting if none provided
+            Task {
+                await loadMostRecentMeeting()
+            }
+        }
+    }
+
+    /// Loads the most recent meeting (for when view is opened without specific meeting)
+    func loadMostRecentMeeting() async {
+        isLoading = true
+        error = nil
+
+        do {
+            // First check if there's an active meeting
+            if let activeMeeting = try await databaseManager.getActiveMeeting() {
+                self.meeting = activeMeeting
+                await loadData(for: activeMeeting)
+            } else if let recentMeeting = try await databaseManager.getMostRecentMeeting() {
+                // Otherwise load the most recent completed meeting
+                self.meeting = recentMeeting
+                await loadData(for: recentMeeting)
+            } else {
+                // No meetings found
+                isLoading = false
+            }
+        } catch {
+            self.error = "Laden fehlgeschlagen: \(error.localizedDescription)"
+            isLoading = false
+        }
+    }
+
+    /// Loads a specific meeting by ID
+    func loadMeeting(id meetingId: Int64) async {
+        isLoading = true
+        error = nil
+
+        do {
+            if let meeting = try await databaseManager.getMeeting(id: meetingId) {
+                self.meeting = meeting
+                await loadData(for: meeting)
+            } else {
+                self.error = "Meeting nicht gefunden"
+                isLoading = false
+            }
+        } catch {
+            self.error = "Laden fehlgeschlagen: \(error.localizedDescription)"
+            isLoading = false
         }
     }
 
@@ -273,14 +335,8 @@ final class MeetingMinutesViewModel: ObservableObject {
     }
 }
 
-// MARK: - Coordinator Extension
-
-private extension MeetingTranscriptionCoordinator {
-    var currentMeetingId: Int64? {
-        // This would need to be exposed properly
-        nil
-    }
-}
+// MARK: - Coordinator Extension removed
+// currentMeetingId is now public in MeetingTranscriptionCoordinator
 
 // MARK: - Tab Enum
 

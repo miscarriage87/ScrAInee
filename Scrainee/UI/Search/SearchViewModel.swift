@@ -1,3 +1,24 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SearchViewModel.swift | PURPOSE: Such-Logik mit Debouncing | LAYER: UI/Search
+//
+// DEPENDENCIES:
+//   - DatabaseManager (Actor): searchOCR() fuer Volltextsuche
+//   - SearchResult (Model): Such-Ergebnis Entitaet
+//
+// DEPENDENTS:
+//   - SearchView.swift: @StateObject Consumer
+//
+// CHANGE IMPACT:
+//   - Debounce-Zeit hier definiert (300ms)
+//   - Such-Limit hier definiert (100 Ergebnisse)
+//   - Filter-Methoden fuer App/Datum verfuegbar
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import Combine
 

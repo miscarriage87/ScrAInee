@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: KeychainService.swift | PURPOSE: Sichere Credential-Speicherung | LAYER: Services
+//
+// DEPENDENCIES: KeychainAccess (Third-Party)
+// DEPENDENTS: QuickAskView (claudeAPIKey), ClaudeAPIClient (indirekt), NotionClient (indirekt)
+// CHANGE IMPACT: Schluessel-Aenderungen erfordern Migration bestehender Keychain-Eintraege
+//
+// KEYS: claudeAPIKey, notionAPIKey, notionDatabaseId (siehe Key enum)
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import KeychainAccess
 

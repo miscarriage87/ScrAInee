@@ -1,3 +1,104 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: MeetingTranscriptionCoordinator.swift
+// PURPOSE: Koordiniert Audio-Aufnahme, Transkription und Meeting-Minutes-Generierung.
+//          Orchestriert den gesamten Transkriptions-Workflow für Meetings.
+// LAYER: Core/Meeting
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENCIES (was diese Datei NUTZT)                                        │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// IMPORTS:
+//   - Foundation: Basis-Typen, Date, Task
+//   - Combine: Publisher für Notification-Handling
+//   - SwiftUI: @AppStorage für Settings
+//
+// CORE SERVICES (Singletons):
+//   - AudioCaptureManager.shared: Audio-Aufnahme via ScreenCaptureKit
+//     - startRecording(for:), stopRecording()
+//     - setOnChunkCaptured() für Echtzeit-Chunks
+//
+//   - WhisperTranscriptionService.shared: Lokale Whisper-Transkription
+//     - isModelLoaded, isModelDownloaded
+//     - loadModel(), transcribe(), transcribeChunk()
+//
+//   - MeetingMinutesGenerator.shared: AI-gestützte Minutes-Generierung
+//     - generateMinutes(), finalizeMinutes()
+//
+//   - DatabaseManager.shared: Persistenz
+//     - updateMeetingTranscriptionStatus()
+//     - updateMeetingAudioPath()
+//     - insert(TranscriptSegment)
+//     - getActionItems(for:)
+//     - getActiveMeeting()
+//
+// NOTIFICATIONS (gehört):
+//   - .meetingStarted: Von MeetingDetector - startet Auto-Transkription
+//   - .meetingEnded: Von MeetingDetector - stoppt Transkription
+//
+// APPSTORAGE KEYS:
+//   - "autoTranscribe": Bool - Auto-Start bei Meeting-Erkennung
+//   - "whisperModelDownloaded": Bool - Modell verfügbar
+//   - "liveMinutesEnabled": Bool - Echtzeit-Minutes-Updates
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENTS (wer diese Datei NUTZT)                                          │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// NOTIFICATIONS GESENDET:
+//
+//   .transcriptionCompleted (object: TranscriptionCompletedInfo)
+//     → Aktuell keine aktiven Listener
+//     Payload: meetingId, segmentCount, minutes (optional)
+//     Wann: Nach stopTranscription() wenn alles abgeschlossen
+//
+// DIREKTE NUTZER:
+//   - MeetingMinutesViewModel.swift: Zugriff auf currentSegments, currentMinutes,
+//                                     actionItems, isTranscribing, statusMessage
+//   - MeetingMinutesView.swift: EnvironmentObject für UI-State
+//
+// PUBLISHED STATE:
+//   - isTranscribing: Bool - Transkription aktiv
+//   - isRecording: Bool - Audio-Aufnahme aktiv
+//   - currentSegments: [TranscriptSegment] - Bisherige Segmente
+//   - currentMinutes: MeetingMinutes? - Aktuelle generierte Minutes
+//   - actionItems: [ActionItem] - Extrahierte Action Items
+//   - transcriptionProgress: Double - Fortschritt (Segment-Count)
+//   - statusMessage: String - UI-Statustext
+//   - error: String? - Fehlermeldung
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ CHANGE IMPACT - KRITISCHE HINWEISE                                          │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// 1. AUTO-TRANSKRIPTION FLOW:
+//    - .meetingStarted → prüft autoTranscribe + isModelDownloaded
+//    - Retry-Logik (3x) für getActiveMeeting() wegen Race Condition
+//    - Meeting muss in DB existieren BEVOR Transkription startet
+//
+// 2. WHISPER-MODELL:
+//    - Muss geladen sein vor startTranscription()
+//    - loadModel() wird automatisch aufgerufen wenn downloaded
+//
+// 3. CHUNK-VERARBEITUNG:
+//    - AudioChunk von AudioCaptureManager (30s Chunks, 16kHz Mono)
+//    - processAudioChunk() → whisperService.transcribeChunk()
+//    - Segmente werden sofort in DB gespeichert
+//
+// 4. LIVE MINUTES:
+//    - Periodische Updates alle 60s + nach je 3 Segmenten
+//    - minutesUpdateTask wird bei stopTranscription() gecancelt
+//
+// 5. THREAD-SAFETY:
+//    - @MainActor für alle Published Properties
+//    - Notification Handler empfangen auf main queue
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import Combine
 import SwiftUI
@@ -26,11 +127,15 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
 
     // MARK: - Private State
 
-    private var currentMeetingId: Int64?
+    private(set) var currentMeetingId: Int64?
     private var meetingStartTime: Date?
     private var segmentsSinceLastUpdate = 0
     private var cancellables = Set<AnyCancellable>()
     private var minutesUpdateTask: Task<Void, Never>?
+    private var modelUnloadTask: Task<Void, Never>?
+
+    /// Delay before unloading Whisper model after meeting ends (5 minutes = 300 seconds)
+    private let modelUnloadDelay: Duration = .seconds(300)
 
     // MARK: - Dependencies
 
@@ -58,10 +163,11 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
             throw TranscriptionCoordinatorError.invalidMeeting
         }
 
-        guard !isTranscribing else {
-            print("MeetingTranscriptionCoordinator: Already transcribing")
-            return
-        }
+        guard !isTranscribing else { return }
+
+        // Cancel any pending model unload since we're starting transcription
+        modelUnloadTask?.cancel()
+        modelUnloadTask = nil
 
         // Check if Whisper model is loaded
         if !whisperService.isModelLoaded {
@@ -96,7 +202,8 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
             }
         }
 
-        try await audioCapture.startRecording(for: meetingId)
+        // Pass app bundle ID for app-specific audio capture
+        try await audioCapture.startRecording(for: meetingId, appBundleId: meeting.appBundleId)
 
         isRecording = true
         isTranscribing = true
@@ -107,7 +214,6 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
             startPeriodicMinutesUpdates()
         }
 
-        print("MeetingTranscriptionCoordinator: Started transcription for meeting \(meetingId)")
     }
 
     /// Stops transcription and finalizes everything
@@ -147,7 +253,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
                     currentSegments.append(segment)
                 }
             } catch {
-                print("MeetingTranscriptionCoordinator: Final transcription failed: \(error)")
+                // Final transcription failed - continue with available segments
             }
         }
 
@@ -163,7 +269,6 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
             actionItems = try await databaseManager.getActionItems(for: meetingId)
 
         } catch {
-            print("MeetingTranscriptionCoordinator: Failed to finalize minutes: \(error)")
             self.error = "Minutes-Generierung fehlgeschlagen: \(error.localizedDescription)"
         }
 
@@ -184,7 +289,32 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
             )
         )
 
+        // Schedule Whisper model unload after delay to free ~3GB RAM
+        scheduleModelUnload()
+
         return finalMinutes
+    }
+
+    /// Schedules unloading the Whisper model after a delay
+    /// Cancels if a new transcription starts before the delay expires
+    private func scheduleModelUnload() {
+        // Cancel any existing unload task
+        modelUnloadTask?.cancel()
+
+        modelUnloadTask = Task { [weak self] in
+            guard let self = self else { return }
+
+            do {
+                try await Task.sleep(for: self.modelUnloadDelay)
+
+                // Only unload if still not transcribing
+                if !self.isTranscribing {
+                    self.whisperService.unloadModel()
+                }
+            } catch {
+                // Task was cancelled - model stays loaded
+            }
+        }
     }
 
     /// Processes an audio chunk for real-time transcription
@@ -212,7 +342,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
                 }
             }
         } catch {
-            print("MeetingTranscriptionCoordinator: Chunk transcription failed: \(error)")
+            // Chunk transcription failed - continue with next chunk
         }
     }
 
@@ -228,7 +358,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
                 isLiveUpdate: true
             )
         } catch {
-            print("MeetingTranscriptionCoordinator: Minutes refresh failed: \(error)")
+            // Minutes refresh failed - continue without update
         }
     }
 
@@ -251,19 +381,31 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
         NotificationCenter.default.publisher(for: .meetingStarted)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
-                guard let self = self,
-                      self.autoTranscribe,
-                      self.whisperModelDownloaded,
-                      let _ = notification.object as? MeetingSession else { return }
+                guard let self = self else { return }
+                guard self.autoTranscribe else { return }
+
+                let isModelDownloaded = WhisperTranscriptionService.shared.isModelDownloaded
+                guard isModelDownloaded else { return }
+                guard let session = notification.object as? MeetingSession else { return }
 
                 Task { @MainActor in
-                    // Get the meeting from database
-                    if let meeting = try? await DatabaseManager.shared.getActiveMeeting() {
-                        do {
-                            try await self.startTranscription(for: meeting)
-                        } catch {
-                            self.error = "Auto-Start fehlgeschlagen: \(error.localizedDescription)"
-                        }
+                    // Retry-Mechanismus falls DB noch nicht bereit
+                    var meeting: Meeting?
+                    for attempt in 1...3 {
+                        meeting = try? await DatabaseManager.shared.getActiveMeeting()
+                        if meeting != nil { break }
+                        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                    }
+
+                    guard let meeting = meeting else {
+                        self.error = "Meeting konnte nicht aus Datenbank geladen werden"
+                        return
+                    }
+
+                    do {
+                        try await self.startTranscription(for: meeting)
+                    } catch {
+                        self.error = "Auto-Start fehlgeschlagen: \(error.localizedDescription)"
                     }
                 }
             }
@@ -273,10 +415,15 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
         NotificationCenter.default.publisher(for: .meetingEnded)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self = self, self.isTranscribing else { return }
+                guard let self = self else { return }
+                guard self.isTranscribing else { return }
 
                 Task { @MainActor in
-                    _ = try? await self.stopTranscription()
+                    do {
+                        _ = try await self.stopTranscription()
+                    } catch {
+                        self.error = "Transkription konnte nicht beendet werden: \(error.localizedDescription)"
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -305,7 +452,7 @@ final class MeetingTranscriptionCoordinator: ObservableObject {
                 isLiveUpdate: true
             )
         } catch {
-            print("MeetingTranscriptionCoordinator: Incremental minutes update failed: \(error)")
+            // Incremental update failed - continue with next iteration
         }
     }
 }

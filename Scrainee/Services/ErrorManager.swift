@@ -1,3 +1,19 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ErrorManager.swift | PURPOSE: Zentrale Fehlerbehandlung & UI-Alerts | LAYER: Services
+//
+// DEPENDENCIES: SwiftUI (View, Alert), FileLogger.shared (Logging)
+// DEPENDENTS: Alle Views via .withErrorHandling() Modifier, Core-Komponenten via handle()
+// CHANGE IMPACT: AppError-Aenderungen beeinflussen alle Fehleranzeigen in der App
+//
+// KENNT ERROR-TYPEN: CaptureError, DatabaseError, ClaudeAPIError, NotionError,
+//                    ExportError, CompressionError (siehe init(from:))
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import Combine
 

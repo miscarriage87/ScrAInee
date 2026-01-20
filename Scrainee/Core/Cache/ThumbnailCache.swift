@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: ThumbnailCache | PURPOSE: LRU-Cache fuer Screenshot-Thumbnails | LAYER: Core/Cache
+//
+// DEPENDENCIES: AppKit (NSImage), CoreGraphics (CGImageSource)
+// DEPENDENTS: TimelineThumbnailStrip, TimelineViewModel, E2E-Tests
+// CHANGE IMPACT: Aenderungen betreffen Timeline-Performance und Speicherverbrauch
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import AppKit
 import Foundation
 

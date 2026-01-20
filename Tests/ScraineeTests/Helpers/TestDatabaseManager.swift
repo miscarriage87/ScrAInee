@@ -51,10 +51,7 @@ actor TestDatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            var record = screenshot
-            try record.insert(db)
-            // Nach insert sollte die ID gesetzt sein via didInsert callback
-            // Falls nicht, holen wir sie manuell via lastInsertedRowID
+            let record = try screenshot.inserted(db)
             if let id = record.id {
                 return id
             }
@@ -132,9 +129,7 @@ actor TestDatabaseManager {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
 
         return try await db.write { db in
-            var record = ocrResult
-            try record.insert(db)
-            // Falls didInsert nicht aufgerufen wurde, hole ID manuell
+            let record = try ocrResult.inserted(db)
             if let id = record.id {
                 return id
             }

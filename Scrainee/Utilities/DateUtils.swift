@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: DateUtils.swift | PURPOSE: Date formatting & calculations | LAYER: Utilities
+//
+// DEPENDENCIES: Foundation (DateFormatter, Calendar, Locale)
+// DEPENDENTS: UI Views, ViewModels, Database queries (date filtering)
+// CHANGE IMPACT: Locale changes affect all date displays; formatter changes are app-wide
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Date formatting utilities

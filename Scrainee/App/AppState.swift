@@ -1,3 +1,68 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: AppState.swift
+// PURPOSE: Zentraler App-State als Singleton ObservableObject. Koordiniert die
+//          Sub-State-Objekte (CaptureState, MeetingState, SettingsState, UIState)
+//          und reagiert auf System-Events wie Meeting-Erkennung.
+// LAYER: App (oberste Schicht - orchestriert alle anderen Layer)
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENCIES (was diese Datei NUTZT)                                        │
+// ├─────────────────────────────────────────────────────────────────────────────┤
+// │ IMPORTS:                                                                    │
+// │   • CaptureState             → App/State/CaptureState.swift                 │
+// │   • MeetingState             → App/State/MeetingState.swift                 │
+// │   • SettingsState            → App/State/SettingsState.swift                │
+// │   • UIState                  → App/State/UIState.swift                      │
+// │   • ScreenCaptureManager     → Core/ScreenCapture/ScreenCaptureManager.swift│
+// │   • DatabaseManager.shared   → Core/Database/DatabaseManager.swift          │
+// │   • WhisperTranscriptionService.shared → Core/Audio/WhisperTranscription... │
+// │   • Screenshot (Model)       → Core/Database/Models/Screenshot.swift        │
+// │   • MeetingSession (Model)   → Core/Meeting/MeetingDetector.swift           │
+// │                                                                             │
+// │ LISTENS TO (Notifications):                                                 │
+// │   • .meetingStarted          → von MeetingDetector.swift                    │
+// │   • .meetingEnded            → von MeetingDetector.swift                    │
+// │                                                                             │
+// │ PROTOCOLS IMPLEMENTED:                                                      │
+// │   • ScreenCaptureManagerDelegate → Empfängt Screenshot-Callbacks            │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ DEPENDENTS (wer diese Datei NUTZT)                                          │
+// ├─────────────────────────────────────────────────────────────────────────────┤
+// │ USED BY (via AppState.shared oder @EnvironmentObject):                      │
+// │   • ScraineeApp.swift        → StateObject Initialisierung                  │
+// │   • MenuBarView.swift        → UI-State Binding                             │
+// │   • SettingsView.swift       → Einstellungen lesen/schreiben                │
+// │   • SearchView.swift         → Such-State                                   │
+// │   • SummaryRequestView.swift → Summary-Generierung                          │
+// │   • SummaryListView.swift    → Summary-Anzeige                              │
+// │   • HotkeyManager.swift      → toggleCapture() aufrufen                     │
+// │   • SettingsValidator.swift  → State-Validierung                            │
+// │   • AdminViewModel.swift     → Admin-Funktionen                             │
+// │   • ContextOverlayView.swift → Kontext-Overlay                              │
+// │                                                                             │
+// │ DEFINES:                                                                    │
+// │   • Notification.Name.meetingStarted                                        │
+// │   • Notification.Name.meetingEnded                                          │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// ┌─────────────────────────────────────────────────────────────────────────────┐
+// │ CHANGE IMPACT                                                               │
+// ├─────────────────────────────────────────────────────────────────────────────┤
+// │ • Sub-State-Objekte: Änderungen an CaptureState/MeetingState/etc.           │
+// │ • Backward-Compatibility: Computed Properties leiten auf Sub-States um      │
+// │ • initializeApp(): Reihenfolge kritisch (DB → Whisper → Capture → Meeting)  │
+// │ • ScreenCaptureManagerDelegate: Callback-Signatur nicht ändern              │
+// │ • Notification.Name Extensions: Von MeetingDetector, Coordinator genutzt    │
+// └─────────────────────────────────────────────────────────────────────────────┘
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 import Combine
 
@@ -6,108 +71,195 @@ import Combine
 final class AppState: ObservableObject {
     static let shared = AppState()
 
-    // MARK: - Published Properties
+    // MARK: - Sub-State Objects
+
+    /// State for screen capture related properties
+    @Published var captureState = CaptureState()
+
+    /// State for meeting related properties
+    @Published var meetingState = MeetingState()
+
+    /// State for persistent app settings
+    @Published var settingsState = SettingsState()
+
+    /// State for transient UI-related properties
+    @Published var uiState = UIState()
+
+    // MARK: - Backward Compatibility (wird nach vollständiger Migration entfernt)
 
     /// Whether screen capture is currently active
-    @Published var isCapturing = false
+    var isCapturing: Bool {
+        get { captureState.isCapturing }
+        set { captureState.isCapturing = newValue }
+    }
 
     /// Total number of screenshots taken this session
-    @Published var screenshotCount = 0
+    var screenshotCount: Int {
+        get { captureState.screenshotCount }
+        set { captureState.screenshotCount = newValue }
+    }
 
     /// Total screenshots in database
-    @Published var totalScreenshots = 0
+    var totalScreenshots: Int {
+        get { captureState.totalScreenshots }
+        set { captureState.totalScreenshots = newValue }
+    }
 
     /// Current storage usage formatted string
-    @Published var storageUsed: String = "0 MB"
+    var storageUsed: String {
+        get { captureState.storageUsed }
+        set { captureState.storageUsed = newValue }
+    }
 
     /// Timestamp of last screenshot
-    @Published var lastCaptureTime: Date?
+    var lastCaptureTime: Date? {
+        get { captureState.lastCaptureTime }
+        set { captureState.lastCaptureTime = newValue }
+    }
 
     /// Current capture interval in seconds
-    @Published var captureInterval: Int = 3
+    var captureInterval: Int {
+        get { settingsState.captureInterval }
+        set { settingsState.captureInterval = newValue }
+    }
 
     /// Name of currently active application
-    @Published var currentApp: String = ""
+    var currentApp: String {
+        get { captureState.currentApp }
+        set { captureState.currentApp = newValue }
+    }
 
     /// Whether a meeting is currently detected
-    @Published var isMeetingActive = false
+    var isMeetingActive: Bool {
+        get { meetingState.isMeetingActive }
+        set { meetingState.isMeetingActive = newValue }
+    }
 
     /// Current meeting session if any
-    @Published var currentMeeting: MeetingSession?
+    var currentMeeting: MeetingSession? {
+        get { meetingState.currentMeeting }
+        set { meetingState.currentMeeting = newValue }
+    }
 
     /// Show permission alert
-    @Published var showPermissionAlert = false
+    var showPermissionAlert: Bool {
+        get { uiState.showPermissionAlert }
+        set { uiState.showPermissionAlert = newValue }
+    }
 
     /// Current summary being generated
-    @Published var isGeneratingSummary = false
+    var isGeneratingSummary: Bool {
+        get { meetingState.isGeneratingSummary }
+        set { meetingState.isGeneratingSummary = newValue }
+    }
 
     /// Last generated summary
-    @Published var lastSummary: Summary?
+    var lastSummary: Summary? {
+        get { meetingState.lastSummary }
+        set { meetingState.lastSummary = newValue }
+    }
 
     /// Error message to display
-    @Published var errorMessage: String?
+    var errorMessage: String? {
+        get { uiState.errorMessage }
+        set { uiState.errorMessage = newValue }
+    }
 
-    // MARK: - Settings
+    // MARK: - Settings Backward Compatibility
 
-    @AppStorage("captureInterval") var storedCaptureInterval: Int = 3
-    @AppStorage("retentionDays") var retentionDays: Int = 30
-    @AppStorage("ocrEnabled") var ocrEnabled: Bool = true
-    @AppStorage("meetingDetectionEnabled") var meetingDetectionEnabled: Bool = true
-    @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
-    @AppStorage("heicQuality") var heicQuality: Double = 0.6
-    @AppStorage("notionEnabled") var notionEnabled: Bool = false
-    @AppStorage("notionAutoSync") var notionAutoSync: Bool = true
-    @AppStorage("autoStartCapture") var autoStartCapture: Bool = true
+    var storedCaptureInterval: Int {
+        get { settingsState.captureInterval }
+        set { settingsState.captureInterval = newValue }
+    }
+
+    var retentionDays: Int {
+        get { settingsState.retentionDays }
+        set { settingsState.retentionDays = newValue }
+    }
+
+    var ocrEnabled: Bool {
+        get { settingsState.ocrEnabled }
+        set { settingsState.ocrEnabled = newValue }
+    }
+
+    var meetingDetectionEnabled: Bool {
+        get { settingsState.meetingDetectionEnabled }
+        set { settingsState.meetingDetectionEnabled = newValue }
+    }
+
+    var launchAtLogin: Bool {
+        get { settingsState.launchAtLogin }
+        set { settingsState.launchAtLogin = newValue }
+    }
+
+    var heicQuality: Double {
+        get { settingsState.heicQuality }
+        set { settingsState.heicQuality = newValue }
+    }
+
+    var notionEnabled: Bool {
+        get { settingsState.notionEnabled }
+        set { settingsState.notionEnabled = newValue }
+    }
+
+    var notionAutoSync: Bool {
+        get { settingsState.notionAutoSync }
+        set { settingsState.notionAutoSync = newValue }
+    }
+
+    var autoStartCapture: Bool {
+        get { settingsState.autoStartCapture }
+        set { settingsState.autoStartCapture = newValue }
+    }
 
     // MARK: - Private Properties
 
     private var screenCaptureManager: ScreenCaptureManager?
     private var cancellables = Set<AnyCancellable>()
 
-    /// Current meeting database ID for tracking
-    private var currentMeetingDbId: Int64?
-
     // MARK: - Initialization
 
     private init() {
-        captureInterval = storedCaptureInterval
         setupManagers()
         setupNotifications()
-        // Hinweis: Auto-Start und Stats werden erst nach DB-Initialisierung in initializeApp() aufgerufen
+        setupStateConnections()
     }
 
     /// Called after database is initialized
     func initializeApp() async {
-        // Initialize database first
+        // 1. Initialize database first
         do {
             try await DatabaseManager.shared.initialize()
-            print("[DEBUG] Datenbank erfolgreich initialisiert")
         } catch {
-            print("[ERROR] Datenbank-Initialisierung fehlgeschlagen: \(error)")
             return
         }
 
-        await refreshStats()
+        await captureState.refreshStats()
 
-        // Auto-load Whisper model if already downloaded (await, nicht fire-and-forget)
-        if WhisperTranscriptionService.shared.isModelDownloaded && !WhisperTranscriptionService.shared.isModelLoaded {
+        // 2. Auto-load Whisper model if already downloaded (BLOCKING await!)
+        // WICHTIG: Das muss VOLLSTÄNDIG abgeschlossen sein bevor MeetingDetector startet
+        let whisperService = WhisperTranscriptionService.shared
+        let isDownloaded = whisperService.isModelDownloaded
+        let isLoaded = whisperService.isModelLoaded
+
+        if isDownloaded && !isLoaded {
             do {
-                print("[DEBUG] Auto-loading Whisper model...")
-                try await WhisperTranscriptionService.shared.loadModel()
-                print("[DEBUG] Whisper model auto-loaded successfully")
+                try await whisperService.loadModel()
             } catch {
-                print("[WARNING] Failed to auto-load Whisper model: \(error)")
+                // Whisper model load failed - transcription will not be available
             }
         }
 
-        // Auto-start capture wenn aktiviert
-        if autoStartCapture {
-            print("[DEBUG] Auto-Start aktiviert, starte Aufnahme...")
+        // 3. CRITICAL: Sync whisperModelDownloaded flag with actual model state
+        // This ensures MeetingTranscriptionCoordinator's guard condition passes
+        let finalDownloadedState = whisperService.isModelDownloaded
+        UserDefaults.standard.set(finalDownloadedState, forKey: "whisperModelDownloaded")
+
+        // 4. Auto-start capture wenn aktiviert
+        if settingsState.autoStartCapture {
             // Kurze Verzögerung für System-Bereitschaft
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 Sekunden
-            await startCapture()
-        } else {
-            print("[DEBUG] Auto-Start deaktiviert")
+            await captureState.startCapture()
         }
     }
 
@@ -116,6 +268,10 @@ final class AppState: ObservableObject {
     private func setupManagers() {
         screenCaptureManager = ScreenCaptureManager()
         screenCaptureManager?.delegate = self
+
+        // Connect CaptureState to ScreenCaptureManager
+        captureState.screenCaptureManager = screenCaptureManager
+        captureState.captureInterval = settingsState.captureInterval
     }
 
     private func setupNotifications() {
@@ -124,7 +280,9 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 if let meeting = notification.object as? MeetingSession {
-                    self?.handleMeetingStarted(meeting)
+                    Task { @MainActor in
+                        await self?.meetingState.handleMeetingStarted(meeting)
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -134,242 +292,98 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
                 if let meeting = notification.object as? MeetingSession {
-                    self?.handleMeetingEnded(meeting)
+                    Task { @MainActor in
+                        await self?.meetingState.handleMeetingEnded(meeting)
+                    }
                 }
             }
             .store(in: &cancellables)
     }
 
-    // MARK: - Capture Control
+    private func setupStateConnections() {
+        // Connect error handlers
+        captureState.onPermissionRequired = { [weak self] in
+            self?.uiState.showPermissionAlert = true
+        }
+
+        captureState.onError = { [weak self] message in
+            self?.uiState.errorMessage = message
+        }
+
+        meetingState.onError = { [weak self] message in
+            self?.uiState.errorMessage = message
+        }
+
+        // Connect meeting start to capture
+        meetingState.onMeetingStarted = { [weak self] in
+            guard let self = self else { return }
+            if !self.captureState.isCapturing {
+                await self.captureState.startCapture()
+            }
+        }
+
+        // Sync settings to sub-states
+        meetingState.meetingDetectionEnabled = settingsState.meetingDetectionEnabled
+        meetingState.notionEnabled = settingsState.notionEnabled
+        meetingState.notionAutoSync = settingsState.notionAutoSync
+
+        // Observe settings changes and sync to sub-states
+        settingsState.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.syncSettingsToSubStates()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func syncSettingsToSubStates() {
+        captureState.captureInterval = settingsState.captureInterval
+        meetingState.meetingDetectionEnabled = settingsState.meetingDetectionEnabled
+        meetingState.notionEnabled = settingsState.notionEnabled
+        meetingState.notionAutoSync = settingsState.notionAutoSync
+    }
+
+    // MARK: - Capture Control (Backward Compatibility)
 
     func toggleCapture() {
-        if isCapturing {
-            Task { await stopCapture() }
-        } else {
-            Task { await startCapture() }
-        }
+        captureState.toggleCapture()
     }
 
     func startCapture() async {
-        guard !isCapturing else {
-            print("[DEBUG] Aufnahme bereits aktiv")
-            return
-        }
-
-        // Check permission first
-        let permissionManager = PermissionManager.shared
-        var hasPermission = await permissionManager.checkScreenCapturePermission()
-
-        if !hasPermission {
-            // Try to request permission
-            hasPermission = await permissionManager.requestScreenCapturePermission()
-        }
-
-        guard hasPermission else {
-            showPermissionAlert = true
-            print("[DEBUG] Auto-Start fehlgeschlagen: Keine Berechtigung")
-            return
-        }
-
-        do {
-            try await screenCaptureManager?.startCapturing(interval: TimeInterval(captureInterval))
-            isCapturing = true
-            screenshotCount = 0
-            // Clear permission alert if capture starts successfully
-            showPermissionAlert = false
-            print("[DEBUG] Aufnahme erfolgreich gestartet")
-        } catch {
-            errorMessage = "Aufnahme konnte nicht gestartet werden: \(error.localizedDescription)"
-            print("[ERROR] Aufnahme-Start fehlgeschlagen: \(error)")
-        }
+        await captureState.startCapture()
     }
 
     func stopCapture() async {
-        guard isCapturing else { return }
-
-        screenCaptureManager?.stopCapturing()
-        isCapturing = false
+        await captureState.stopCapture()
     }
 
-    // MARK: - Stats
+    // MARK: - Stats (Backward Compatibility)
 
     func refreshStats() async {
-        do {
-            // Try to initialize database if not already done
-            try await DatabaseManager.shared.initialize()
-            totalScreenshots = try await DatabaseManager.shared.getScreenshotCount()
-            storageUsed = StorageManager.shared.formattedStorageUsed
-        } catch {
-            // Silently ignore if database not ready yet - will be initialized by AppDelegate
-            storageUsed = StorageManager.shared.formattedStorageUsed
-        }
+        await captureState.refreshStats()
     }
-    
-    // MARK: - Permission Management
-    
+
+    // MARK: - Permission Management (Backward Compatibility)
+
     func checkAndUpdatePermissions() async {
-        let hasPermission = await PermissionManager.shared.checkScreenCapturePermission()
-        if hasPermission && showPermissionAlert {
-            showPermissionAlert = false
-        } else if !hasPermission && isCapturing {
-            // Stop capture if permission was revoked
-            await stopCapture()
-            showPermissionAlert = true
-        }
-    }
-
-    // MARK: - Meeting Handling
-
-    private func handleMeetingStarted(_ meeting: MeetingSession) {
-        guard meetingDetectionEnabled else { return }
-
-        isMeetingActive = true
-        currentMeeting = meeting
-
-        // Auto-start capture if not already running
-        if !isCapturing {
-            Task {
-                await startCapture()
+        await uiState.checkAndUpdatePermissions(
+            isCapturing: captureState.isCapturing,
+            stopCapture: { [weak self] in
+                await self?.captureState.stopCapture()
             }
-        }
-
-        // Save meeting to database
-        Task {
-            await saveMeetingToDatabase(meeting)
-        }
+        )
     }
 
-    private func handleMeetingEnded(_ meeting: MeetingSession) {
-        isMeetingActive = false
-        let endTime = Date()
+    // MARK: - Summary Generation (Backward Compatibility)
 
-        // Generate summary for meeting and sync to Notion
-        if let startTime = currentMeeting?.startTime {
-            Task {
-                // Update meeting end time in database
-                await updateMeetingEndTime(endTime: endTime)
-
-                // Generate summary
-                await generateSummary(from: startTime, to: endTime)
-
-                // Sync to Notion if enabled
-                if notionEnabled && notionAutoSync, let summary = lastSummary {
-                    await syncMeetingToNotion(meeting: meeting, summary: summary)
-                }
-            }
-        }
-
-        currentMeeting = nil
-        currentMeetingDbId = nil
-    }
-
-    // MARK: - Meeting Database Operations
-
-    private func saveMeetingToDatabase(_ meeting: MeetingSession) async {
-        do {
-            let dbMeeting = Meeting(
-                id: nil,
-                appBundleId: meeting.bundleId,
-                appName: meeting.appName,
-                startTime: meeting.startTime,
-                endTime: nil,
-                durationSeconds: nil,
-                screenshotCount: nil,
-                transcript: nil,
-                aiSummary: nil,
-                notionPageId: nil,
-                notionPageUrl: nil,
-                status: .active,
-                transcriptionStatus: .notStarted,
-                audioFilePath: nil,
-                createdAt: nil
-            )
-            currentMeetingDbId = try await DatabaseManager.shared.insert(dbMeeting)
-        } catch {
-            print("Failed to save meeting to database: \(error)")
-        }
-    }
-
-    private func updateMeetingEndTime(endTime: Date) async {
-        guard let meetingId = currentMeetingDbId else { return }
-
-        do {
-            if var meeting = try await DatabaseManager.shared.getMeeting(id: meetingId) {
-                meeting.endTime = endTime
-                if let startTime = meeting.startTime as Date? {
-                    meeting.durationSeconds = Int(endTime.timeIntervalSince(startTime))
-                }
-                meeting.screenshotCount = try await DatabaseManager.shared.getScreenshotCountForMeeting(meetingId: meetingId)
-                meeting.status = .completed
-                try await DatabaseManager.shared.update(meeting)
-            }
-        } catch {
-            print("Failed to update meeting end time: \(error)")
-        }
-    }
-
-    // MARK: - Notion Integration
-
-    private func syncMeetingToNotion(meeting: MeetingSession, summary: Summary) async {
-        guard let meetingId = currentMeetingDbId else { return }
-
-        let notionClient = NotionClient()
-
-        // Check if Notion is configured
-        guard notionClient.isConfigured else {
-            errorMessage = "Notion nicht konfiguriert. Bitte API Key und Database ID in den Einstellungen eingeben."
-            return
-        }
-
-        do {
-            // Get screenshot count for this meeting
-            let screenshotCount = try await DatabaseManager.shared.getScreenshotCountForMeeting(meetingId: meetingId)
-
-            // Create Notion page
-            let notionPage = try await notionClient.createMeetingPage(
-                meeting: meeting,
-                summary: summary.content,
-                screenshotCount: screenshotCount
-            )
-
-            // Update meeting in database with Notion link
-            try await DatabaseManager.shared.updateMeetingNotionLink(
-                meetingId: meetingId,
-                pageId: notionPage.id,
-                pageUrl: notionPage.url
-            )
-
-            print("Meeting successfully synced to Notion: \(notionPage.url)")
-        } catch {
-            errorMessage = "Notion Sync fehlgeschlagen: \(error.localizedDescription)"
-        }
+    func generateSummary(from startTime: Date, to endTime: Date) async {
+        await meetingState.generateSummary(from: startTime, to: endTime)
     }
 
     /// Manually sync a meeting to Notion
     func syncCurrentMeetingToNotion() async {
-        guard let meeting = currentMeeting, let summary = lastSummary else {
-            errorMessage = "Kein Meeting oder Zusammenfassung verfuegbar"
-            return
-        }
-
-        await syncMeetingToNotion(meeting: meeting, summary: summary)
-    }
-
-    // MARK: - Summary Generation
-
-    func generateSummary(from startTime: Date, to endTime: Date) async {
-        guard !isGeneratingSummary else { return }
-
-        isGeneratingSummary = true
-        defer { isGeneratingSummary = false }
-
-        do {
-            let generator = SummaryGenerator()
-            let summary = try await generator.generateSummary(from: startTime, to: endTime)
-            lastSummary = summary
-        } catch {
-            errorMessage = "Zusammenfassung konnte nicht erstellt werden: \(error.localizedDescription)"
-        }
+        await meetingState.syncCurrentMeetingToNotion()
     }
 }
 
@@ -378,21 +392,13 @@ final class AppState: ObservableObject {
 extension AppState: ScreenCaptureManagerDelegate {
     nonisolated func screenCaptureManager(_ manager: ScreenCaptureManager, didCaptureScreenshot screenshot: Screenshot) {
         Task { @MainActor in
-            screenshotCount += 1
-            totalScreenshots += 1
-            lastCaptureTime = screenshot.timestamp
-            currentApp = screenshot.appName ?? ""
-
-            // Storage-Stats alle 10 Screenshots aktualisieren für Performance
-            if screenshotCount % 10 == 0 {
-                storageUsed = StorageManager.shared.formattedStorageUsed
-            }
+            captureState.handleScreenshotCaptured(screenshot)
         }
     }
 
     nonisolated func screenCaptureManager(_ manager: ScreenCaptureManager, didFailWithError error: Error) {
         Task { @MainActor in
-            errorMessage = "Aufnahmefehler: \(error.localizedDescription)"
+            uiState.errorMessage = "Aufnahmefehler: \(error.localizedDescription)"
         }
     }
 }

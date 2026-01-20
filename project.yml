@@ -21,6 +21,9 @@ packages:
   KeychainAccess:
     url: https://github.com/kishikawakatsumi/KeychainAccess.git
     from: "4.2.2"
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    from: "0.9.0"
 
 targets:
   Scrainee:
@@ -51,9 +54,7 @@ targets:
     dependencies:
       - package: GRDB
       - package: KeychainAccess
-    entitlements:
-      path: Scrainee/Scrainee.entitlements
-      properties: {}
+      - package: WhisperKit
 
   ScraineeTests:
     type: bundle.unit-test
@@ -65,6 +66,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cpohl.scrainee.tests
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Scrainee
       - package: GRDB

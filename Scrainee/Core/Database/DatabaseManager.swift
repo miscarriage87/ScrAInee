@@ -1,3 +1,55 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: DatabaseManager.swift
+// PURPOSE: Zentraler Actor für alle thread-safe Datenbank-Operationen
+// LAYER: Core/Database
+//
+// ─────────────────────────────────────────────────────────────────────────────────
+// EXTERNAL DEPENDENCIES:
+// ─────────────────────────────────────────────────────────────────────────────────
+// - GRDB.swift (6.24.0+)     : SQLite-Abstraktion, DatabaseQueue, FetchableRecord
+//
+// ─────────────────────────────────────────────────────────────────────────────────
+// INTERNAL DEPENDENCIES (same module):
+// ─────────────────────────────────────────────────────────────────────────────────
+// - StorageManager           : Für databaseURL Pfad (Core/Storage)
+// - Screenshot               : GRDB Model für Screenshots (Core/Database/Models)
+// - OCRResult                : GRDB Model für OCR-Ergebnisse (Core/Database/Models)
+// - Meeting                  : GRDB Model für Meetings (Core/Database/Models)
+// - MeetingScreenshot        : Junction-Table für Meeting-Screenshot Zuordnung
+// - Summary                  : GRDB Model für AI-Zusammenfassungen
+// - TranscriptSegment        : GRDB Model für Transkriptions-Segmente
+// - MeetingMinutes           : GRDB Model für Meeting-Protokolle
+// - ActionItem               : GRDB Model für Aktionspunkte
+// - SearchResult             : Read-only Model für Suchergebnisse
+//
+// ─────────────────────────────────────────────────────────────────────────────────
+// USED BY (consumers of this module):
+// ─────────────────────────────────────────────────────────────────────────────────
+// - AppState                 : App/AppState.swift (Initialisierung, Stats)
+// - ScreenCaptureManager     : Core/ScreenCapture (Screenshot speichern)
+// - OCRManager               : Core/OCR (OCR-Ergebnisse speichern)
+// - MeetingDetector          : Core/Meeting (Meeting CRUD)
+// - SummaryGenerator         : Core/AI (Zusammenfassungen speichern)
+// - SearchViewModel          : UI/Search (Volltextsuche)
+// - GalleryViewModel         : UI/Gallery (Screenshot-Abfragen)
+// - TimelineViewModel        : UI/Timeline (Timeline-Daten)
+// - MeetingMinutesViewModel  : UI/MeetingMinutes (Protokoll-Verwaltung)
+// - RetentionPolicy          : Core/Storage (Cleanup alter Daten)
+//
+// ─────────────────────────────────────────────────────────────────────────────────
+// CHANGE IMPACT:
+// ─────────────────────────────────────────────────────────────────────────────────
+// - KRITISCH: Schema-Änderungen erfordern DB-Migration in migrate()
+// - API-Änderungen brechen alle aufrufenden ViewModels/Manager
+// - Actor-Isolation: Alle Methoden sind async
+// - Singleton-Pattern: DatabaseManager.shared
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 
@@ -59,6 +111,24 @@ actor DatabaseManager {
 
             // Migration: Add transcription columns to meetings if they don't exist
             try Meeting.addTranscriptionColumns(in: db)
+
+            // Migration v3: Performance indexes for Timeline/Gallery queries
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_screenshots_app_time
+                ON screenshots(appName, timestamp DESC)
+            """)
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_screenshots_display_time
+                ON screenshots(displayId, timestamp DESC)
+            """)
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_ocr_screenshot
+                ON ocrResults(screenshotId)
+            """)
+            try db.execute(sql: """
+                CREATE INDEX IF NOT EXISTS idx_meetings_status_time
+                ON meetings(status, startTime DESC)
+            """)
         }
     }
 
@@ -255,6 +325,26 @@ actor DatabaseManager {
         }
     }
 
+    /// Gets the most recent meeting (active or completed)
+    func getMostRecentMeeting() async throws -> Meeting? {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try Meeting
+                .order(Meeting.Columns.startTime.desc)
+                .fetchOne(db)
+        }
+    }
+
+    /// Gets meeting by ID
+    func getMeeting(id: Int64) async throws -> Meeting? {
+        guard let db = dbQueue else { throw DatabaseError.notInitialized }
+
+        return try await db.read { db in
+            try Meeting.fetchOne(db, key: id)
+        }
+    }
+
     /// Gets meetings in a time range
     func getMeetings(from startTime: Date, to endTime: Date) async throws -> [Meeting] {
         guard let db = dbQueue else { throw DatabaseError.notInitialized }
@@ -327,15 +417,6 @@ actor DatabaseManager {
                 """,
                 arguments: [pageId, pageUrl, MeetingStatus.exported.rawValue, meetingId]
             )
-        }
-    }
-
-    /// Gets a meeting by ID
-    func getMeeting(id: Int64) async throws -> Meeting? {
-        guard let db = dbQueue else { throw DatabaseError.notInitialized }
-
-        return try await db.read { db in
-            try Meeting.fetchOne(db, key: id)
         }
     }
 

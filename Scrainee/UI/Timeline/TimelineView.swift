@@ -1,3 +1,30 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: TimelineView.swift | PURPOSE: Rewind-Style Timeline UI | LAYER: UI/Timeline
+//
+// DEPENDENCIES:
+//   - TimelineViewModel: State-Management und Screenshot-Navigation
+//   - TimelineThumbnailStrip: Horizontale Thumbnail-Leiste
+//   - TimelineSliderView: Zeit-Slider mit Aktivitaets-Segmenten
+//   - TimelineTimeLabels: Start/Ende/Aktuelle Zeit Anzeige
+//   - TimelineNavigationButtons: Vor/Zurueck Navigation
+//   - TimelineDateNavigation: Tages-Navigation mit DatePicker
+//   - Screenshot (Model): Screenshot-Metadaten
+//   - ActivitySegment (Model): App-Aktivitaets-Segmente
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift: Window-Registration ("timeline-window")
+//   - MenuBarView.swift: Timeline-Button oeffnet dieses Fenster
+//
+// CHANGE IMPACT:
+//   - Window-ID Aenderung erfordert Update in ScraineeApp.swift
+//   - Keyboard-Shortcuts hier definiert (Pfeiltasten)
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// Main Timeline view for browsing through screenshots chronologically

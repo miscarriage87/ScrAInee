@@ -1,3 +1,27 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SummaryListView.swift | PURPOSE: Summary History & Notion Export | LAYER: UI/Summary
+//
+// DEPENDENCIES:
+//   - AppState (App/AppState.swift) - Global app state via @EnvironmentObject
+//   - NotionClient (Core/Integration/NotionClient.swift) - Notion API export
+//   - DatabaseManager (Core/Database/DatabaseManager.swift) - Summary persistence
+//   - Summary (Core/Database/Models/Summary.swift) - Summary data model
+//   - NotionExportPreviewView (UI/Summary/NotionExportPreviewView.swift) - Export preview sheet
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift - Window registration with id: "summarylist"
+//   - MenuBarView.swift - Opens via "Alle Zusammenfassungen" button
+//
+// CHANGE IMPACT:
+//   - Window ID "summarylist" used in openWindow() calls
+//   - Contains embedded: SummaryRowView, SummaryDetailView, SummaryListViewModel
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 struct SummaryListView: View {

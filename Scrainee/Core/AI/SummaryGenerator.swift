@@ -1,3 +1,16 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SummaryGenerator | PURPOSE: AI-Zusammenfassungen aus Screenshots | LAYER: Core/AI
+//
+// DEPENDENCIES: ClaudeAPIClient, DatabaseManager, ImageCompressor, KeychainAccess
+// DEPENDENTS: AppState, QuickAskView, SummaryRequestView
+// CHANGE IMPACT: Aenderungen betreffen Summary-Generierung und Quick-Ask Feature
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import KeychainAccess
 

@@ -1,3 +1,18 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SettingsValidator.swift | PURPOSE: Settings-Validierung & Backup/Import | LAYER: Services
+//
+// DEPENDENCIES: Foundation, AppState.shared (fuer Import/Export)
+// DEPENDENTS: SettingsView (Validierung), AppState (Validierung bei Aenderungen)
+// CHANGE IMPACT: Validierungs-Grenzwerte muessen mit UI-Constraints synchron sein
+//
+// ENTHAELT AUCH: SettingsBackup (Codable), SettingsManager, SettingsImportError
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 
 /// Validates settings values and provides helpful error messages
@@ -162,19 +177,20 @@ extension SettingsManager {
     /// Exports current settings to a backup
     @MainActor
     func exportSettings() throws -> Data {
+        let settings = AppState.shared.settingsState
         let backup = SettingsBackup(
             exportDate: Date(),
             appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0",
-            captureInterval: AppState.shared.storedCaptureInterval,
+            captureInterval: settings.captureInterval,
             meetingInterval: nil, // TODO: Add when adaptive settings are in AppState
             idleInterval: nil,
-            retentionDays: AppState.shared.retentionDays,
-            heicQuality: AppState.shared.heicQuality,
-            ocrEnabled: AppState.shared.ocrEnabled,
-            meetingDetectionEnabled: AppState.shared.meetingDetectionEnabled,
-            launchAtLogin: AppState.shared.launchAtLogin,
-            notionEnabled: AppState.shared.notionEnabled,
-            notionAutoSync: AppState.shared.notionAutoSync
+            retentionDays: settings.retentionDays,
+            heicQuality: settings.heicQuality,
+            ocrEnabled: settings.ocrEnabled,
+            meetingDetectionEnabled: settings.meetingDetectionEnabled,
+            launchAtLogin: settings.launchAtLogin,
+            notionEnabled: settings.notionEnabled,
+            notionAutoSync: settings.notionAutoSync
         )
 
         let encoder = JSONEncoder()
@@ -204,30 +220,30 @@ extension SettingsManager {
 
         // Apply settings
         Task { @MainActor in
-            AppState.shared.storedCaptureInterval = backup.captureInterval
-            AppState.shared.captureInterval = backup.captureInterval
-            AppState.shared.retentionDays = backup.retentionDays
-            AppState.shared.heicQuality = backup.heicQuality
-            AppState.shared.ocrEnabled = backup.ocrEnabled
-            AppState.shared.meetingDetectionEnabled = backup.meetingDetectionEnabled
-            AppState.shared.launchAtLogin = backup.launchAtLogin
-            AppState.shared.notionEnabled = backup.notionEnabled
-            AppState.shared.notionAutoSync = backup.notionAutoSync
+            let settings = AppState.shared.settingsState
+            settings.captureInterval = backup.captureInterval
+            settings.retentionDays = backup.retentionDays
+            settings.heicQuality = backup.heicQuality
+            settings.ocrEnabled = backup.ocrEnabled
+            settings.meetingDetectionEnabled = backup.meetingDetectionEnabled
+            settings.launchAtLogin = backup.launchAtLogin
+            settings.notionEnabled = backup.notionEnabled
+            settings.notionAutoSync = backup.notionAutoSync
         }
     }
 
     /// Resets all settings to defaults
     func resetToDefaults() {
         Task { @MainActor in
-            AppState.shared.storedCaptureInterval = 3
-            AppState.shared.captureInterval = 3
-            AppState.shared.retentionDays = 30
-            AppState.shared.heicQuality = 0.6
-            AppState.shared.ocrEnabled = true
-            AppState.shared.meetingDetectionEnabled = true
-            AppState.shared.launchAtLogin = false
-            AppState.shared.notionEnabled = false
-            AppState.shared.notionAutoSync = true
+            let settings = AppState.shared.settingsState
+            settings.captureInterval = 3
+            settings.retentionDays = 30
+            settings.heicQuality = 0.6
+            settings.ocrEnabled = true
+            settings.meetingDetectionEnabled = true
+            settings.launchAtLogin = false
+            settings.notionEnabled = false
+            settings.notionAutoSync = true
         }
     }
 }

@@ -1,3 +1,29 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: QuickAskView.swift | PURPOSE: AI Quick-Ask Floating Panel | LAYER: UI/QuickAsk
+//
+// DEPENDENCIES:
+//   - ClaudeAPIClient (Core/AI/ClaudeAPIClient.swift) - Claude API for Q&A
+//   - SummaryGenerator (Core/AI/SummaryGenerator.swift) - API key validation
+//   - DatabaseManager (Core/Database/DatabaseManager.swift) - Context loading (screenshots, OCR, meetings)
+//   - KeychainService (Services/KeychainService.swift) - API key retrieval
+//   - Screenshot, OCRResult, Meeting, Summary (Core/Database/Models/) - Data models
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift - Window registration with id: "quickask"
+//   - MenuBarView.swift - Opens via "Quick Ask" button (Cmd+Shift+A)
+//   - HotkeyManager (Services/HotkeyManager.swift) - Global hotkey trigger
+//
+// CHANGE IMPACT:
+//   - Window ID "quickask" used in openWindow() calls
+//   - QuickAskViewModel embedded - handles multi-source context aggregation
+//   - Floating window style - affects window behavior
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 /// Quick Ask floating window for asking questions about current context

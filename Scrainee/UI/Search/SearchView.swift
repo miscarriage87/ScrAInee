@@ -1,3 +1,31 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: SearchView.swift | PURPOSE: Volltextsuche in OCR-Ergebnissen | LAYER: UI/Search
+//
+// DEPENDENCIES:
+//   - AppState: @EnvironmentObject (globaler App-State)
+//   - SearchViewModel: @StateObject fuer Such-Logik
+//   - SearchResult (Model): Such-Ergebnis mit Highlight
+//   - ImageCompressor: Thumbnail-Generierung fuer Ergebnisse
+//
+// DEPENDENTS:
+//   - ScraineeApp.swift: Window-Registration ("search-window")
+//   - MenuBarView.swift: Suche-Button oeffnet dieses Fenster
+//   - HotkeyManager: Cmd+Shift+F oeffnet Suche
+//
+// CHANGE IMPACT:
+//   - Window-ID Aenderung erfordert Update in ScraineeApp.swift
+//   - Debounced-Search (300ms) in SearchViewModel
+//
+// ENTHALTENE SUB-VIEWS:
+//   - SearchResultRow: Einzelnes Suchergebnis mit Thumbnail
+//   - AsyncThumbnailView: Async Thumbnail-Loading
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import SwiftUI
 
 struct SearchView: View {

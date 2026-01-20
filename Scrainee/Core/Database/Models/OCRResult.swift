@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: OCRResult.swift | PURPOSE: GRDB Model für OCR-Textergebnisse mit FTS5 | LAYER: Core/Database
+//
+// DEPENDENCIES: GRDB.swift
+// RELATED: Screenshot (Foreign Key: screenshotId), ocrFts (FTS5 Virtual Table)
+// USED BY: DatabaseManager, OCRManager, SearchViewModel
+// CHANGE IMPACT: Schema-Änderungen erfordern DB-Migration; FTS5-Trigger in createTable()
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import GRDB
 

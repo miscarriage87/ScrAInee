@@ -1,3 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - 📋 DEPENDENCY DOCUMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// FILE: AdaptiveCaptureManager.swift | PURPOSE: Dynamische Intervall-Anpassung | LAYER: Core/ScreenCapture
+//
+// DEPENDENCIES: Foundation (Timer, Date, Calendar), Combine (@Published)
+// DEPENDENTS: ScreenCaptureManager (adaptiveManager Property), AppState (Zugriff auf Intervall-Stats)
+// CHANGE IMPACT: Intervall-Logik beeinflusst Capture-Frequenz und Speicherverbrauch;
+//                Notification-Namen (.captureIdleStateChanged) werden von ScreenCaptureManager gehoert
+//
+// LAST UPDATED: 2026-01-20
+// ═══════════════════════════════════════════════════════════════════════════════
+
 import Foundation
 import Combine
 

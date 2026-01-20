@@ -325,7 +325,6 @@ final class FullPipelineE2ETests: XCTestCase {
     /// Verifiziert: Performance der gesamten Pipeline
     func test_fullPipeline_performanceAcceptable() async throws {
         // Arrange
-        let testText = "Performance test content"
         guard let image = ImageGenerator.createMockScreenshot(width: 1920, height: 1080) else {
             XCTFail("Konnte Bild nicht erstellen")
             return
