@@ -23,7 +23,7 @@
 //   - SearchResultRow: Einzelnes Suchergebnis mit Thumbnail
 //   - AsyncThumbnailView: Async Thumbnail-Loading
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -63,6 +63,7 @@ struct SearchView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
                 .font(.title3)
+                .accessibilityHidden(true)
 
             if #available(macOS 14.0, *) {
                 TextField("In Screenshots suchen...", text: $searchText)
@@ -76,6 +77,8 @@ struct SearchView: View {
                         // Debounced search
                         viewModel.debounceSearch(query: newValue)
                     }
+                    .accessibilityLabel("Suchfeld")
+                    .accessibilityHint("Gib einen Suchbegriff ein um in allen Screenshots zu suchen")
             } else {
                 // Fallback on earlier versions
             }
@@ -86,11 +89,14 @@ struct SearchView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Suche löschen")
+                .accessibilityHint("Löscht den Suchbegriff und die Ergebnisse")
             }
 
             if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
+                    .accessibilityLabel("Suche läuft")
             }
         }
         .padding()
@@ -117,6 +123,10 @@ struct SearchView: View {
                         .onTapGesture {
                             openScreenshot(result)
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(searchResultAccessibilityLabel(for: result))
+                        .accessibilityHint("Doppeltippen um Screenshot zu öffnen")
+                        .accessibilityAddTraits(.isButton)
                 }
             }
             .padding(.horizontal)
@@ -134,6 +144,7 @@ struct SearchView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 48))
                     .foregroundColor(.secondary)
+                    .accessibilityHidden(true)
 
                 Text("Nach Text in Screenshots suchen")
                     .font(.headline)
@@ -148,6 +159,7 @@ struct SearchView: View {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.system(size: 48))
                     .foregroundColor(.secondary)
+                    .accessibilityHidden(true)
 
                 Text("Keine Ergebnisse")
                     .font(.headline)
@@ -160,6 +172,8 @@ struct SearchView: View {
 
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(searchText.isEmpty ? "Suchhinweis: Gib einen Suchbegriff ein" : "Keine Ergebnisse für \(searchText)")
     }
 
     // MARK: - Loading View
@@ -191,6 +205,19 @@ struct SearchView: View {
     private func openScreenshot(_ result: SearchResult) {
         // Open screenshot in Preview or Quick Look
         NSWorkspace.shared.open(result.fileURL)
+    }
+
+    private func searchResultAccessibilityLabel(for result: SearchResult) -> String {
+        var label = ""
+        if let appName = result.appName {
+            label += "App: \(appName). "
+        }
+        if let windowTitle = result.windowTitle, !windowTitle.isEmpty {
+            label += "Fenster: \(windowTitle). "
+        }
+        let textPreview = String(result.text.prefix(100))
+        label += "Text: \(textPreview)"
+        return label
     }
 }
 

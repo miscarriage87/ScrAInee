@@ -138,8 +138,16 @@
     - IntegrationSettingsView: Meeting toggle, Notion save/test buttons, status views
     - StorageSettingsView: Finder button, retention picker, cleanup/delete buttons
 
-- [ ] **UI-003: SearchView accessibility**
-  - File: `Sources/Scrainee/UI/Search/SearchView.swift`
+- [x] **UI-003: SearchView accessibility** ✅
+  - File: `Scrainee/UI/Search/SearchView.swift`
+  - Added accessibility to 10+ interactive elements:
+    - Search field with label and hint
+    - Clear search button
+    - Loading indicator
+    - Results count (live region)
+    - SearchResultRow with combined accessibility (app, window, text preview)
+    - Empty state views with conditional labels
+    - Decorative icons hidden from VoiceOver
 
 - [ ] **UI-004: TimelineView accessibility**
   - File: `Sources/Scrainee/UI/Timeline/TimelineView.swift`
@@ -211,6 +219,7 @@
 - [x] **TEST-003**: ScreenCaptureManager tests (50 tests, all passing) (2026-01-21)
 - [x] **UI-001**: MenuBarView accessibility (15+ elements with labels/hints) (2026-01-21)
 - [x] **UI-002**: SettingsView accessibility (25+ elements across 6 tabs) (2026-01-21)
+- [x] **UI-003**: SearchView accessibility (10+ elements) (2026-01-21)
 
 ## Notes
 
