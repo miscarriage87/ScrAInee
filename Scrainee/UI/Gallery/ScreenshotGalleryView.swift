@@ -24,7 +24,7 @@
 //   - ScreenshotDetailView: Rechte Detail-Ansicht mit OCR-Text
 //   - MetadataRow: Key-Value Anzeige fuer Details
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -81,8 +81,11 @@ struct ScreenshotGalleryView: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
+                    .accessibilityHidden(true)
                 TextField("Suchen...", text: $viewModel.searchText)
                     .textFieldStyle(.plain)
+                    .accessibilityLabel("Suchfeld")
+                    .accessibilityHint("Suche in Screenshot-Texten")
 
                 if !viewModel.searchText.isEmpty {
                     Button(action: { viewModel.searchText = "" }) {
@@ -90,6 +93,7 @@ struct ScreenshotGalleryView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Suche löschen")
                 }
             }
             .padding(8)
@@ -103,6 +107,8 @@ struct ScreenshotGalleryView: View {
             Button(action: { showFilters.toggle() }) {
                 Label("Filter", systemImage: showFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
             }
+            .accessibilityLabel("Filter")
+            .accessibilityHint(showFilters ? "Filter-Popover schließen" : "Filter-Optionen öffnen")
             .popover(isPresented: $showFilters) {
                 filterPopover
             }
@@ -114,11 +120,14 @@ struct ScreenshotGalleryView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .disabled(viewModel.isLoading)
+            .accessibilityLabel("Aktualisieren")
+            .accessibilityHint("Lädt die Screenshots neu")
 
             // Screenshot count
             Text("\(viewModel.screenshots.count) Screenshots")
                 .foregroundColor(.secondary)
                 .font(.caption)
+                .accessibilityLabel("\(viewModel.screenshots.count) Screenshots geladen")
         }
         .padding()
     }
@@ -142,6 +151,8 @@ struct ScreenshotGalleryView: View {
                     }
                 }
                 .labelsHidden()
+                .accessibilityLabel("App-Filter")
+                .accessibilityHint("Wähle eine App um nur deren Screenshots anzuzeigen")
             }
 
             // Date range
@@ -156,14 +167,17 @@ struct ScreenshotGalleryView: View {
                         set: { viewModel.filterDateFrom = $0 }
                     ), displayedComponents: .date)
                     .labelsHidden()
+                    .accessibilityLabel("Startdatum")
 
                     Text("bis")
+                        .accessibilityHidden(true)
 
                     DatePicker("Bis", selection: Binding(
                         get: { viewModel.filterDateTo ?? Date() },
                         set: { viewModel.filterDateTo = $0 }
                     ), displayedComponents: .date)
                     .labelsHidden()
+                    .accessibilityLabel("Enddatum")
                 }
             }
 
@@ -176,6 +190,7 @@ struct ScreenshotGalleryView: View {
                     viewModel.filterDateTo = nil
                     Task { await viewModel.refresh() }
                 }
+                .accessibilityHint("Setzt alle Filter zurück")
 
                 Spacer()
 
@@ -184,10 +199,13 @@ struct ScreenshotGalleryView: View {
                     Task { await viewModel.refresh() }
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityHint("Wendet die Filter an und schließt das Popover")
             }
         }
         .padding()
         .frame(width: 300)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Filter-Optionen")
     }
 
     // MARK: - Screenshot Grid
@@ -228,6 +246,7 @@ struct ScreenshotGalleryView: View {
             Image(systemName: "photo.on.rectangle.angled")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
 
             Text("Keine Screenshots gefunden")
                 .font(.title2)
@@ -245,6 +264,7 @@ struct ScreenshotGalleryView: View {
                     viewModel.searchText = ""
                     Task { await viewModel.refresh() }
                 }
+                .accessibilityHint("Setzt alle Filter zurück und lädt alle Screenshots")
             } else {
                 Text("Screenshots werden automatisch aufgenommen")
                     .font(.caption)
@@ -252,6 +272,8 @@ struct ScreenshotGalleryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Keine Screenshots gefunden")
     }
 }
 
@@ -342,6 +364,18 @@ struct ScreenshotThumbnailView: View {
         .task {
             await loadThumbnail()
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(thumbnailAccessibilityLabel)
+        .accessibilityHint(isSelected ? "Ausgewählt. Doppeltippen für Kontextmenü" : "Doppeltippen zum Auswählen")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var thumbnailAccessibilityLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        let appName = screenshot.appName ?? "Unbekannte App"
+        return "Screenshot von \(appName), \(formatter.string(from: screenshot.timestamp))"
     }
 
     private func loadThumbnail() async {
@@ -383,14 +417,17 @@ struct ScreenshotDetailView: View {
                             .onTapGesture(count: 2) {
                                 viewModel.openWithQuickLook(screenshot)
                             }
+                            .accessibilityLabel("Screenshot-Vorschau von \(screenshot.appName ?? "Unbekannt")")
+                            .accessibilityHint("Doppeltippen für Quick Look")
                     } else {
                         Rectangle()
                             .fill(Color.gray.opacity(0.2))
                             .aspectRatio(16/9, contentMode: .fit)
                             .cornerRadius(8)
                             .overlay { ProgressView() }
+                            .accessibilityLabel("Screenshot wird geladen")
                     }
-                    
+
                     // Metadata
                     GroupBox("Details") {
                         VStack(alignment: .leading, spacing: 8) {
@@ -402,7 +439,9 @@ struct ScreenshotDetailView: View {
                             MetadataRow(label: "Hash", value: String(screenshot.hash?.prefix(16) ?? "-"))
                         }
                     }
-                    
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Screenshot-Details")
+
                     // OCR Text
                     if let text = ocrText, !text.isEmpty {
                         GroupBox("Erkannter Text") {
@@ -411,25 +450,30 @@ struct ScreenshotDetailView: View {
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityLabel("Erkannter Text: \(String(text.prefix(200)))")
                     }
-                    
+
                     // Actions
                     HStack {
                         Button(action: { viewModel.showInFinder(screenshot) }) {
                             Label("Im Finder", systemImage: "folder")
                         }
-                        
+                        .accessibilityHint("Öffnet den Ordner mit dem Screenshot im Finder")
+
                         Button(action: { viewModel.openWithQuickLook(screenshot) }) {
                             Label("Quick Look", systemImage: "eye")
                         }
-                        
+                        .accessibilityHint("Zeigt den Screenshot in Quick Look an")
+
                         Spacer()
-                        
+
                         Button(role: .destructive) {
                             Task { await viewModel.deleteScreenshot(screenshot) }
                         } label: {
                             Label("Loeschen", systemImage: "trash")
                         }
+                        .accessibilityHint("Löscht den Screenshot unwiderruflich")
                     }
                 }
                 .padding()
@@ -494,5 +538,7 @@ struct MetadataRow: View {
             Spacer()
         }
         .font(.caption)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value)")
     }
 }

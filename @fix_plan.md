@@ -162,8 +162,15 @@
     - TimelineDateNavigation (3 buttons + DatePicker)
     - ThumbnailStrip with screenshot labels and selection state
 
-- [ ] **UI-005: GalleryView accessibility**
-  - File: `Sources/Scrainee/UI/Gallery/ScreenshotGalleryView.swift`
+- [x] **UI-005: GalleryView accessibility** ✅
+  - File: `Scrainee/UI/Gallery/ScreenshotGalleryView.swift`
+  - Added accessibility to 20+ interactive elements:
+    - Toolbar: Search field, clear button, filter button, refresh button
+    - Filter popover: App picker, date pickers, reset/apply buttons
+    - Empty state with conditional button
+    - ScreenshotThumbnailView with dynamic labels and selection state
+    - ScreenshotDetailView: Preview, details GroupBox, OCR text, action buttons
+    - MetadataRow with combined labels
 
 - [ ] **UI-006: QuickAskView accessibility**
   - File: `Sources/Scrainee/UI/QuickAsk/QuickAskView.swift`
@@ -231,6 +238,7 @@
 - [x] **UI-002**: SettingsView accessibility (25+ elements across 6 tabs) (2026-01-21)
 - [x] **UI-003**: SearchView accessibility (10+ elements) (2026-01-21)
 - [x] **UI-004**: TimelineView accessibility (25+ elements across 3 files) (2026-01-21)
+- [x] **UI-005**: GalleryView accessibility (20+ elements) (2026-01-21)
 
 ## Notes
 
