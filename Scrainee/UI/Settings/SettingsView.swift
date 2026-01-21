@@ -25,7 +25,7 @@
 //   - API keys stored in Keychain - key names must match KeychainService constants
 //   - AppStorage keys affect app behavior globally
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -80,8 +80,13 @@ struct GeneralSettingsView: View {
         Form {
             Section {
                 Toggle("Beim Anmelden starten", isOn: $launchAtLogin)
+                    .accessibilityLabel("Beim Anmelden starten")
+                    .accessibilityHint("Scrainee automatisch starten wenn du dich anmeldest")
+
                 Toggle("Aufnahme automatisch starten", isOn: $autoStartCapture)
                     .help("Startet die Bildschirmaufnahme automatisch beim Öffnen der App")
+                    .accessibilityLabel("Aufnahme automatisch starten")
+                    .accessibilityHint("Screenshot-Aufnahme beim App-Start automatisch beginnen")
             } header: {
                 Text("Start")
             }
@@ -137,6 +142,7 @@ struct PermissionRow: View {
         HStack {
             Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(granted ? .green : .red)
+                .accessibilityHidden(true)
 
             Text(title)
 
@@ -147,8 +153,13 @@ struct PermissionRow: View {
                     action()
                 }
                 .buttonStyle(.bordered)
+                .accessibilityLabel("\(title) berechtigen")
+                .accessibilityHint("Öffnet die Systemeinstellungen für \(title)")
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(granted ? "Erteilt" : "Nicht erteilt")")
+        .accessibilityHint(granted ? "" : "Doppeltippen um Berechtigung zu erteilen")
     }
 }
 
@@ -169,13 +180,20 @@ struct CaptureSettingsView: View {
                     Text("5 Sekunden").tag(5)
                     Text("10 Sekunden").tag(10)
                 }
+                .accessibilityLabel("Aufnahme-Intervall")
+                .accessibilityHint("Wie oft ein Screenshot erstellt wird")
 
                 VStack(alignment: .leading) {
                     Text("Bildqualitaet: \(Int(heicQuality * 100))%")
                     Slider(value: $heicQuality, in: 0.3...1.0, step: 0.1)
+                        .accessibilityLabel("Bildqualität")
+                        .accessibilityValue("\(Int(heicQuality * 100)) Prozent")
+                        .accessibilityHint("Höhere Qualität bedeutet mehr Speicherverbrauch")
                 }
 
                 Toggle("OCR aktivieren", isOn: $ocrEnabled)
+                    .accessibilityLabel("OCR Texterkennung aktivieren")
+                    .accessibilityHint("Extrahiert Text aus Screenshots für die Suche")
             } header: {
                 Text("Screenshot-Einstellungen")
             } footer: {
@@ -234,12 +252,16 @@ struct TranscriptionSettingsView: View {
                         }
                         .buttonStyle(.bordered)
                         .disabled(isDownloading)
+                        .accessibilityLabel("Whisper Modell laden")
+                        .accessibilityHint("Lädt das heruntergeladene Spracherkennungsmodell in den Speicher")
                     } else {
                         Button("Herunterladen") {
                             downloadModel()
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(isDownloading)
+                        .accessibilityLabel("Whisper Modell herunterladen")
+                        .accessibilityHint("Lädt das 3 GB große Spracherkennungsmodell herunter")
                     }
                 }
 
@@ -274,10 +296,14 @@ struct TranscriptionSettingsView: View {
                 Toggle("Automatisch bei Meetings starten", isOn: $autoTranscribe)
                     .disabled(!whisperModelDownloaded)
                     .help("Startet die Transkription automatisch wenn ein Meeting erkannt wird")
+                    .accessibilityLabel("Automatisch bei Meetings starten")
+                    .accessibilityHint(whisperModelDownloaded ? "Transkription startet automatisch bei erkannten Meetings" : "Whisper Modell muss erst heruntergeladen werden")
 
                 Toggle("Live Meeting-Minutes", isOn: $liveMinutesEnabled)
                     .disabled(!whisperModelDownloaded)
                     .help("Generiert Meeting-Zusammenfassungen waehrend des Meetings")
+                    .accessibilityLabel("Live Meeting-Minutes")
+                    .accessibilityHint(whisperModelDownloaded ? "Erstellt Zusammenfassungen während des Meetings" : "Whisper Modell muss erst heruntergeladen werden")
             } header: {
                 Text("Automatisierung")
             }
@@ -415,6 +441,8 @@ struct AISettingsView: View {
                         Image(systemName: isAPIKeyVisible ? "eye.slash" : "eye")
                     }
                     .buttonStyle(.borderless)
+                    .accessibilityLabel(isAPIKeyVisible ? "API Key verbergen" : "API Key anzeigen")
+                    .accessibilityHint("Schaltet die Sichtbarkeit des API Keys um")
                 }
 
                 // Action buttons
@@ -423,22 +451,29 @@ struct AISettingsView: View {
                         saveAPIKey()
                     }
                     .disabled(claudeAPIKey.isEmpty || isSaving)
+                    .accessibilityLabel("API Key speichern")
+                    .accessibilityHint("Speichert den API Key sicher im Schlüsselbund")
 
                     Button("Testen") {
                         Task { await testAPIKey() }
                     }
                     .disabled(claudeAPIKey.isEmpty || isTesting)
                     .buttonStyle(.borderedProminent)
+                    .accessibilityLabel("API Key testen")
+                    .accessibilityHint("Prüft ob der API Key gültig ist")
 
                     if isTesting {
                         ProgressView()
                             .scaleEffect(0.7)
+                            .accessibilityLabel("Teste API Verbindung")
                     }
 
                     Button("Loeschen") {
                         deleteAPIKey()
                     }
                     .foregroundColor(.red)
+                    .accessibilityLabel("API Key löschen")
+                    .accessibilityHint("Entfernt den gespeicherten API Key")
                 }
 
                 // Status message
@@ -465,7 +500,12 @@ struct AISettingsView: View {
 
             Section {
                 Link("Anthropic Console", destination: URL(string: "https://console.anthropic.com/")!)
+                    .accessibilityLabel("Anthropic Console öffnen")
+                    .accessibilityHint("Öffnet die Anthropic Console im Browser")
+
                 Link("API Dokumentation", destination: URL(string: "https://docs.anthropic.com/")!)
+                    .accessibilityLabel("API Dokumentation öffnen")
+                    .accessibilityHint("Öffnet die Claude API Dokumentation im Browser")
             } header: {
                 Text("Links")
             }
@@ -492,10 +532,13 @@ struct AISettingsView: View {
             Circle()
                 .fill(apiKeyStatus.color)
                 .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
             Text(apiKeyStatus.label)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("API Key Status: \(apiKeyStatus.label)")
     }
 
     // MARK: - API Key Management
@@ -658,6 +701,8 @@ struct IntegrationSettingsView: View {
         Form {
             Section {
                 Toggle("Meeting-Erkennung aktivieren", isOn: $meetingDetectionEnabled)
+                    .accessibilityLabel("Meeting-Erkennung aktivieren")
+                    .accessibilityHint("Erkennt automatisch laufende Meetings in Teams, Zoom, Webex und Google Meet")
 
                 Text("Unterstuetzte Apps: Microsoft Teams, Zoom, Webex, Google Meet")
                     .font(.caption)
@@ -693,11 +738,15 @@ struct IntegrationSettingsView: View {
                         saveNotionSettings()
                     }
                     .disabled(!validationError.isEmpty && !notionAPIKey.isEmpty)
+                    .accessibilityLabel("Notion Einstellungen speichern")
+                    .accessibilityHint("Speichert API Key und Database ID sicher")
 
                     Button("Verbindung testen") {
                         Task { await testNotionConnection() }
                     }
                     .disabled(notionAPIKey.isEmpty || notionDatabaseId.isEmpty || notionTestStatus == .testing)
+                    .accessibilityLabel("Notion Verbindung testen")
+                    .accessibilityHint("Prüft ob die Notion Integration funktioniert")
 
                     Spacer()
 
@@ -735,23 +784,31 @@ struct IntegrationSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Teste Notion Verbindung")
         case .success:
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
+                    .accessibilityHidden(true)
                 Text(notionStatusMessage)
                     .font(.caption)
                     .foregroundColor(.green)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Erfolg: \(notionStatusMessage)")
         case .error:
             HStack(spacing: 4) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
+                    .accessibilityHidden(true)
                 Text(notionStatusMessage)
                     .font(.caption)
                     .foregroundColor(.red)
                     .lineLimit(2)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Fehler: \(notionStatusMessage)")
         }
     }
 
@@ -849,6 +906,8 @@ struct StorageSettingsView: View {
                     // Use activateFileViewerSelecting to ensure Finder opens (not third-party file managers)
                     NSWorkspace.shared.activateFileViewerSelecting([StorageManager.shared.applicationSupportDirectory])
                 }
+                .accessibilityLabel("Speicherordner im Finder anzeigen")
+                .accessibilityHint("Öffnet den Ordner mit allen Scrainee Daten im Finder")
             } header: {
                 Text("Speicher")
             }
@@ -862,6 +921,8 @@ struct StorageSettingsView: View {
                     Text("90 Tage").tag(90)
                     Text("Unbegrenzt").tag(0)
                 }
+                .accessibilityLabel("Aufbewahrungsdauer")
+                .accessibilityHint("Wie lange Screenshots aufbewahrt werden bevor sie automatisch gelöscht werden")
 
                 Button("Jetzt aufraeumen") {
                     Task {
@@ -869,6 +930,8 @@ struct StorageSettingsView: View {
                         await refreshStats()
                     }
                 }
+                .accessibilityLabel("Jetzt aufräumen")
+                .accessibilityHint("Löscht alte Screenshots entsprechend der Aufbewahrungsdauer")
             } header: {
                 Text("Aufbewahrung")
             } footer: {
@@ -883,6 +946,8 @@ struct StorageSettingsView: View {
                 Button("Alle Screenshots loeschen", role: .destructive) {
                     // Show confirmation dialog
                 }
+                .accessibilityLabel("Alle Screenshots löschen")
+                .accessibilityHint("Achtung: Löscht unwiderruflich alle gespeicherten Screenshots")
             } header: {
                 Text("Gefahrenzone")
             }

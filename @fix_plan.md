@@ -127,8 +127,16 @@
     - System status items with status text
     - Footer buttons (Einstellungen, Beenden)
 
-- [ ] **UI-002: SettingsView accessibility**
-  - File: `Sources/Scrainee/UI/Settings/SettingsView.swift`
+- [x] **UI-002: SettingsView accessibility** ✅
+  - File: `Scrainee/UI/Settings/SettingsView.swift`
+  - Added accessibility to 25+ interactive elements across 6 tabs:
+    - GeneralSettingsView: Launch/Auto-start toggles
+    - PermissionRow: Combined labels with status + action hints
+    - CaptureSettingsView: Picker, Slider, OCR toggle
+    - TranscriptionSettingsView: Download/Load buttons, toggles
+    - AISettingsView: API key field, show/hide, save/test/delete buttons, links
+    - IntegrationSettingsView: Meeting toggle, Notion save/test buttons, status views
+    - StorageSettingsView: Finder button, retention picker, cleanup/delete buttons
 
 - [ ] **UI-003: SearchView accessibility**
   - File: `Sources/Scrainee/UI/Search/SearchView.swift`
@@ -202,6 +210,7 @@
 - [x] **TEST-002**: MeetingDetector tests (29 tests, all passing) (2026-01-20)
 - [x] **TEST-003**: ScreenCaptureManager tests (50 tests, all passing) (2026-01-21)
 - [x] **UI-001**: MenuBarView accessibility (15+ elements with labels/hints) (2026-01-21)
+- [x] **UI-002**: SettingsView accessibility (25+ elements across 6 tabs) (2026-01-21)
 
 ## Notes
 
