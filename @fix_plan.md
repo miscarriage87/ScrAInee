@@ -172,8 +172,14 @@
     - ScreenshotDetailView: Preview, details GroupBox, OCR text, action buttons
     - MetadataRow with combined labels
 
-- [ ] **UI-006: QuickAskView accessibility**
-  - File: `Sources/Scrainee/UI/QuickAsk/QuickAskView.swift`
+- [x] **UI-006: QuickAskView accessibility** ✅
+  - File: `Scrainee/UI/QuickAsk/QuickAskView.swift`
+  - Added accessibility to 12+ interactive elements:
+    - Header: Context indicator (combined), close button
+    - Input: Question field with label/hint, send button
+    - Loading view with combined accessibility
+    - Response view: Text with label, copy/new question buttons with hints
+    - Suggestions: Container with label, individual suggestions with hints
 
 ### Code Organization
 
@@ -239,6 +245,7 @@
 - [x] **UI-003**: SearchView accessibility (10+ elements) (2026-01-21)
 - [x] **UI-004**: TimelineView accessibility (25+ elements across 3 files) (2026-01-21)
 - [x] **UI-005**: GalleryView accessibility (20+ elements) (2026-01-21)
+- [x] **UI-006**: QuickAskView accessibility (12+ elements) (2026-01-21)
 
 ## Notes
 

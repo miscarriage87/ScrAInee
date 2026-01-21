@@ -21,7 +21,7 @@
 //   - QuickAskViewModel embedded - handles multi-source context aggregation
 //   - Floating window style - affects window behavior
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -70,6 +70,7 @@ struct QuickAskView: View {
         HStack {
             Image(systemName: "sparkles")
                 .foregroundColor(.accentColor)
+                .accessibilityHidden(true)
 
             Text("Quick Ask")
                 .font(.headline)
@@ -82,11 +83,14 @@ struct QuickAskView: View {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
                     Text(context)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Kontext: \(context)")
             }
 
             Button(action: { dismiss() }) {
@@ -94,6 +98,8 @@ struct QuickAskView: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Schließen")
+            .accessibilityHint("Schließt das Quick Ask Fenster")
         }
         .padding()
     }
@@ -109,6 +115,8 @@ struct QuickAskView: View {
                 .onSubmit {
                     Task { await viewModel.askQuestion() }
                 }
+                .accessibilityLabel("Frage eingeben")
+                .accessibilityHint("Stelle eine Frage zum aktuellen Bildschirminhalt")
 
             Button(action: { Task { await viewModel.askQuestion() } }) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -117,6 +125,8 @@ struct QuickAskView: View {
             }
             .buttonStyle(.plain)
             .disabled(viewModel.question.isEmpty || viewModel.isLoading)
+            .accessibilityLabel("Frage senden")
+            .accessibilityHint(viewModel.question.isEmpty ? "Gib zuerst eine Frage ein" : "Sendet die Frage an Claude")
         }
         .padding()
         .background(.thickMaterial)
@@ -133,6 +143,8 @@ struct QuickAskView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Analysiere Kontext, bitte warten")
     }
 
     // MARK: - Response View
@@ -144,6 +156,7 @@ struct QuickAskView: View {
                     .font(.body)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel("Antwort: \(response)")
 
                 HStack {
                     Button(action: copyResponse) {
@@ -151,12 +164,14 @@ struct QuickAskView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityHint("Kopiert die Antwort in die Zwischenablage")
 
                     Button(action: { viewModel.clearResponse() }) {
                         Label("Neue Frage", systemImage: "arrow.counterclockwise")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityHint("Löscht die Antwort und ermöglicht eine neue Frage")
                 }
             }
             .padding()
@@ -170,6 +185,7 @@ struct QuickAskView: View {
             Text("Vorschlaege")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityAddTraits(.isHeader)
 
             ForEach(viewModel.suggestions, id: \.self) { suggestion in
                 Button(action: {
@@ -179,6 +195,7 @@ struct QuickAskView: View {
                     HStack {
                         Image(systemName: "lightbulb")
                             .foregroundColor(.yellow)
+                            .accessibilityHidden(true)
                         Text(suggestion)
                             .font(.caption)
                             .foregroundColor(.primary)
@@ -190,10 +207,14 @@ struct QuickAskView: View {
                     .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Vorschlag: \(suggestion)")
+                .accessibilityHint("Doppeltippen um diese Frage zu stellen")
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Vorschläge für Fragen")
     }
 
     // MARK: - Actions
