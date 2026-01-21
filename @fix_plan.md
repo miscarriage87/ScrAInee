@@ -114,9 +114,18 @@
 
 ### Accessibility (No VoiceOver support currently)
 
-- [ ] **UI-001: MenuBarView accessibility**
-  - File: `Sources/Scrainee/UI/MenuBar/MenuBarView.swift`
-  - Add: `.accessibilityLabel()` and `.accessibilityHint()` to all buttons
+- [x] **UI-001: MenuBarView accessibility** ✅
+  - File: `Scrainee/UI/MenuBar/MenuBarView.swift`
+  - Added accessibility to 15+ interactive elements:
+    - Toggle button (Play/Pause) with dynamic labels
+    - Status indicator with combined label
+    - Permission buttons (Systemeinstellungen, Erneut prüfen)
+    - MenuButton component with accessibilityHintText parameter
+    - All 7 MenuButtons with specific hints
+    - All 4 DisclosureGroups with expand/collapse hints
+    - StatRow component with combined label
+    - System status items with status text
+    - Footer buttons (Einstellungen, Beenden)
 
 - [ ] **UI-002: SettingsView accessibility**
   - File: `Sources/Scrainee/UI/Settings/SettingsView.swift`
@@ -192,6 +201,7 @@
 - [x] **TEST-001**: WhisperTranscriptionService tests (21 tests, all passing) (2026-01-20)
 - [x] **TEST-002**: MeetingDetector tests (29 tests, all passing) (2026-01-20)
 - [x] **TEST-003**: ScreenCaptureManager tests (50 tests, all passing) (2026-01-21)
+- [x] **UI-001**: MenuBarView accessibility (15+ elements with labels/hints) (2026-01-21)
 
 ## Notes
 

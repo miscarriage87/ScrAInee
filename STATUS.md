@@ -2,11 +2,40 @@
 
 **Letzte Aktualisierung:** 2026-01-21
 **Aktueller Branch:** main
-**Letzter Commit:** 831f1b4
+**Letzter Commit:** efd8791
 
 ---
 
 ## Kürzlich implementierte Features
+
+### Session 2026-01-21 (Update 25) - Ralph Phase 2: UI-001 MenuBarView Accessibility
+
+#### Aufgabe
+Phase 2 starten: Accessibility Labels für MenuBarView hinzufügen.
+
+#### Accessibility-Änderungen in MenuBarView.swift
+
+| Element | Accessibility |
+|---------|--------------|
+| Toggle Button (Play/Pause) | Label + Hint dynamisch je nach Status |
+| Status Indicator | Combined element mit Status-Beschreibung |
+| Permission Buttons | Labels + Hints für Systemeinstellungen |
+| MenuButton Komponente | Neuer `accessibilityHintText` Parameter |
+| 7 MenuButtons | Spezifische Hints für jede Aktion |
+| 4 DisclosureGroups | Labels + dynamische Expand/Collapse Hints |
+| StatRow Komponente | Combined label für Icon + Text + Wert |
+| System Status Items | Status-Text (OK, Warnung, Fehler, etc.) |
+| Footer Buttons | Einstellungen + Beenden mit Hints |
+
+#### Neue Hilfsmethode
+```swift
+private func accessibilityStatusText(for status: CheckStatus) -> String
+```
+
+#### Build Status
+- ✅ Build erfolgreich
+
+---
 
 ### Session 2026-01-21 (Update 24) - Ralph Phase 1 COMPLETE: TEST-003 ScreenCaptureManager
 

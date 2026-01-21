@@ -32,7 +32,7 @@
 //   - meetingState: isMeetingActive, currentMeeting, isGeneratingSummary
 //   - uiState: showPermissionAlert
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -101,11 +101,14 @@ struct MenuBarView: View {
                     Circle()
                         .fill(appState.captureState.isCapturing ? Color.red : Color.gray)
                         .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)
 
                     Text(appState.captureState.isCapturing ? "Aufnahme aktiv" : "Pausiert")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(appState.captureState.isCapturing ? "Aufnahmestatus: Aktiv" : "Aufnahmestatus: Pausiert")
             }
 
             Spacer()
@@ -118,6 +121,8 @@ struct MenuBarView: View {
             }
             .buttonStyle(.plain)
             .help(appState.captureState.isCapturing ? "Aufnahme pausieren" : "Aufnahme starten")
+            .accessibilityLabel(appState.captureState.isCapturing ? "Aufnahme pausieren" : "Aufnahme starten")
+            .accessibilityHint(appState.captureState.isCapturing ? "Stoppt die Screenshot-Aufnahme" : "Startet die Screenshot-Aufnahme")
         }
     }
 
@@ -150,7 +155,9 @@ struct MenuBarView: View {
                 .background(Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(6)
-                
+                .accessibilityLabel("Systemeinstellungen öffnen")
+                .accessibilityHint("Öffnet die macOS Systemeinstellungen für Bildschirmaufnahme-Berechtigung")
+
                 Button("Berechtigung erneut prüfen") {
                     Task {
                         await appState.checkAndUpdatePermissions()
@@ -163,6 +170,8 @@ struct MenuBarView: View {
                 .background(Color.green.opacity(0.1))
                 .foregroundColor(.green)
                 .cornerRadius(4)
+                .accessibilityLabel("Berechtigung erneut prüfen")
+                .accessibilityHint("Überprüft ob die Bildschirmaufnahme-Berechtigung erteilt wurde")
             }
             
             // Instructions
@@ -205,6 +214,7 @@ struct MenuBarView: View {
                 ForEach(startupChecker.checkResults) { check in
                     HStack(spacing: 8) {
                         statusCircle(for: check.status)
+                            .accessibilityHidden(true)
                         Text(check.service.rawValue)
                             .font(.caption)
                         Spacer()
@@ -215,6 +225,8 @@ struct MenuBarView: View {
                                 .lineLimit(1)
                         }
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(check.service.rawValue): \(accessibilityStatusText(for: check.status))")
                 }
             }
             .padding(.leading, 8)
@@ -256,9 +268,12 @@ struct MenuBarView: View {
                 } else if startupChecker.isChecking {
                     ProgressView()
                         .scaleEffect(0.5)
+                        .accessibilityLabel("Wird geprüft")
                 }
             }
         }
+        .accessibilityLabel("System Status")
+        .accessibilityHint(isStatusExpanded ? "Zum Einklappen doppeltippen" : "Zum Ausklappen doppeltippen, zeigt Status aller Systemdienste")
     }
 
     private func statusCircle(for status: StartupCheckManager.CheckStatus) -> some View {
@@ -277,6 +292,23 @@ struct MenuBarView: View {
             return .red
         case .pending, .checking:
             return .gray
+        }
+    }
+
+    private func accessibilityStatusText(for status: StartupCheckManager.CheckStatus) -> String {
+        switch status {
+        case .success:
+            return "OK"
+        case .warning:
+            return "Warnung"
+        case .notConfigured:
+            return "Nicht konfiguriert"
+        case .error:
+            return "Fehler"
+        case .pending:
+            return "Ausstehend"
+        case .checking:
+            return "Wird geprüft"
         }
     }
 
@@ -316,15 +348,15 @@ struct MenuBarView: View {
             // KI-Assistent Gruppe
             DisclosureGroup(isExpanded: $isAIExpanded) {
                 VStack(alignment: .leading, spacing: 2) {
-                    MenuButton(title: "Quick Ask", icon: "sparkles", shortcut: "⌘⇧A") {
+                    MenuButton(title: "Quick Ask", icon: "sparkles", shortcut: "⌘⇧A", accessibilityHintText: "Stellt eine Frage an die KI über aktuelle Bildschirminhalte") {
                         openWindow(id: "quickask")
                     }
 
-                    MenuButton(title: "Zusammenfassung erstellen", icon: "doc.text", shortcut: "⌘⇧S") {
+                    MenuButton(title: "Zusammenfassung erstellen", icon: "doc.text", shortcut: "⌘⇧S", accessibilityHintText: "Erstellt eine KI-Zusammenfassung der letzten Screenshots") {
                         openWindow(id: "summary")
                     }
 
-                    MenuButton(title: "Alle Zusammenfassungen", icon: "list.bullet.rectangle") {
+                    MenuButton(title: "Alle Zusammenfassungen", icon: "list.bullet.rectangle", accessibilityHintText: "Zeigt eine Liste aller erstellten Zusammenfassungen") {
                         openWindow(id: "summarylist")
                     }
                 }
@@ -334,19 +366,21 @@ struct MenuBarView: View {
                     .font(.caption)
                     .fontWeight(.semibold)
             }
+            .accessibilityLabel("KI-Assistent")
+            .accessibilityHint(isAIExpanded ? "Zum Einklappen doppeltippen" : "Zum Ausklappen doppeltippen, enthält Quick Ask und Zusammenfassungen")
 
             // Screenshots Gruppe
             DisclosureGroup(isExpanded: $isScreenshotsExpanded) {
                 VStack(alignment: .leading, spacing: 2) {
-                    MenuButton(title: "Suchen", icon: "magnifyingglass", shortcut: "⌘⇧F") {
+                    MenuButton(title: "Suchen", icon: "magnifyingglass", shortcut: "⌘⇧F", accessibilityHintText: "Durchsucht alle Screenshots nach Text") {
                         openWindow(id: "search")
                     }
 
-                    MenuButton(title: "Galerie", icon: "photo.on.rectangle.angled", shortcut: "⌘⇧G") {
+                    MenuButton(title: "Galerie", icon: "photo.on.rectangle.angled", shortcut: "⌘⇧G", accessibilityHintText: "Zeigt alle Screenshots in einer Galerie-Ansicht") {
                         openWindow(id: "gallery")
                     }
 
-                    MenuButton(title: "Timeline", icon: "slider.horizontal.below.rectangle", shortcut: "⌘⇧T") {
+                    MenuButton(title: "Timeline", icon: "slider.horizontal.below.rectangle", shortcut: "⌘⇧T", accessibilityHintText: "Zeigt Screenshots in einer chronologischen Zeitleiste") {
                         openWindow(id: "timeline")
                     }
                 }
@@ -356,11 +390,13 @@ struct MenuBarView: View {
                     .font(.caption)
                     .fontWeight(.semibold)
             }
+            .accessibilityLabel("Screenshots")
+            .accessibilityHint(isScreenshotsExpanded ? "Zum Einklappen doppeltippen" : "Zum Ausklappen doppeltippen, enthält Suche, Galerie und Timeline")
 
             // Meetings Gruppe
             DisclosureGroup(isExpanded: $isMeetingsExpanded) {
                 VStack(alignment: .leading, spacing: 2) {
-                    MenuButton(title: "Meeting Minutes", icon: "person.3", shortcut: "⌘⇧M") {
+                    MenuButton(title: "Meeting Minutes", icon: "person.3", shortcut: "⌘⇧M", accessibilityHintText: "Zeigt Protokolle und Transkripte von Meetings") {
                         openWindow(id: "meetingminutes")
                     }
                 }
@@ -370,6 +406,8 @@ struct MenuBarView: View {
                     .font(.caption)
                     .fontWeight(.semibold)
             }
+            .accessibilityLabel("Meetings")
+            .accessibilityHint(isMeetingsExpanded ? "Zum Einklappen doppeltippen" : "Zum Ausklappen doppeltippen, enthält Meeting Minutes")
 
             if appState.meetingState.isGeneratingSummary {
                 HStack {
@@ -393,6 +431,8 @@ struct MenuBarView: View {
                     Label("Einstellungen", systemImage: "gear")
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Einstellungen")
+                .accessibilityHint("Öffnet das Einstellungsfenster")
             } else {
                 // Fallback on earlier versions
             }
@@ -404,6 +444,8 @@ struct MenuBarView: View {
             }
             .buttonStyle(.plain)
             .foregroundColor(.red)
+            .accessibilityLabel("Scrainee beenden")
+            .accessibilityHint("Beendet die Anwendung vollständig")
         }
         .font(.caption)
     }
@@ -417,6 +459,7 @@ struct MenuButton: View {
     let title: String
     let icon: String
     var shortcut: String? = nil
+    var accessibilityHintText: String? = nil
     let action: () -> Void
 
     var body: some View {
@@ -431,6 +474,7 @@ struct MenuButton: View {
                     Text(shortcut)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
@@ -440,6 +484,8 @@ struct MenuButton: View {
         .padding(.horizontal, 8)
         .background(Color.clear)
         .cornerRadius(4)
+        .accessibilityLabel(title)
+        .accessibilityHint(accessibilityHintText ?? (shortcut != nil ? "Tastenkürzel: \(shortcut!)" : ""))
     }
 }
 
@@ -455,6 +501,7 @@ struct StatRow: View {
             Image(systemName: icon)
                 .frame(width: 20)
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
 
             Text(label)
                 .font(.caption)
@@ -466,6 +513,8 @@ struct StatRow: View {
                 .font(.caption)
                 .fontWeight(.medium)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value)")
     }
 }
 
