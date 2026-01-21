@@ -21,7 +21,7 @@
 //   - CompactThumbnailStrip: Alternative kompakte Darstellung
 //   - SmallThumbnail (private): Kleines Thumbnail fuer Compact-Strip
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -62,6 +62,10 @@ struct TimelineThumbnailStrip: View {
                                     viewModel.goToIndex(index)
                                 }
                             }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(thumbnailAccessibilityLabel(for: screenshot, at: index))
+                            .accessibilityHint(index == viewModel.currentIndex ? "Aktuell ausgewählt" : "Doppeltippen um auszuwählen")
+                            .accessibilityAddTraits(index == viewModel.currentIndex ? [.isButton, .isSelected] : .isButton)
                         }
                     }
                     .padding(.horizontal, (totalWidth - thumbnailWidth) / 2)
@@ -78,6 +82,18 @@ struct TimelineThumbnailStrip: View {
             }
         }
         .frame(height: thumbnailHeight + 16)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Thumbnail-Leiste mit \(viewModel.screenshots.count) Screenshots")
+    }
+
+    private func thumbnailAccessibilityLabel(for screenshot: Screenshot, at index: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        var label = "Screenshot \(index + 1), \(formatter.string(from: screenshot.timestamp))"
+        if let appName = screenshot.appName {
+            label += ", \(appName)"
+        }
+        return label
     }
 }
 

@@ -149,8 +149,18 @@
     - Empty state views with conditional labels
     - Decorative icons hidden from VoiceOver
 
-- [ ] **UI-004: TimelineView accessibility**
-  - File: `Sources/Scrainee/UI/Timeline/TimelineView.swift`
+- [x] **UI-004: TimelineView accessibility** ✅
+  - Files: `Scrainee/UI/Timeline/TimelineView.swift`, `TimelineSliderView.swift`, `TimelineThumbnailStrip.swift`
+  - Added accessibility to 25+ interactive elements across 3 files:
+    - Current screenshot info with combined accessibility
+    - Info button with label/hint
+    - Loading and empty state views
+    - ScreenshotPreviewView with dynamic labels
+    - TimelineSliderView with adjustable action (increment/decrement)
+    - TimelineTimeLabels (start, current, end)
+    - TimelineNavigationButtons (4 buttons with labels/hints)
+    - TimelineDateNavigation (3 buttons + DatePicker)
+    - ThumbnailStrip with screenshot labels and selection state
 
 - [ ] **UI-005: GalleryView accessibility**
   - File: `Sources/Scrainee/UI/Gallery/ScreenshotGalleryView.swift`
@@ -220,6 +230,7 @@
 - [x] **UI-001**: MenuBarView accessibility (15+ elements with labels/hints) (2026-01-21)
 - [x] **UI-002**: SettingsView accessibility (25+ elements across 6 tabs) (2026-01-21)
 - [x] **UI-003**: SearchView accessibility (10+ elements) (2026-01-21)
+- [x] **UI-004**: TimelineView accessibility (25+ elements across 3 files) (2026-01-21)
 
 ## Notes
 

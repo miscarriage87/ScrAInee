@@ -22,7 +22,7 @@
 //   - Window-ID Aenderung erfordert Update in ScraineeApp.swift
 //   - Keyboard-Shortcuts hier definiert (Pfeiltasten)
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -104,6 +104,7 @@ struct ScreenshotTimelineView: View {
                     // App icon placeholder
                     Image(systemName: "app.fill")
                         .foregroundColor(.secondary)
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(viewModel.currentAppName)
@@ -120,6 +121,8 @@ struct ScreenshotTimelineView: View {
                         .font(.system(.title2, design: .monospaced))
                         .fontWeight(.medium)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Aktueller Screenshot: \(viewModel.currentAppName), \(viewModel.currentWindowTitle.isEmpty ? "" : "Fenster: \(viewModel.currentWindowTitle), ")Uhrzeit: \(viewModel.currentTimeText)")
             }
 
             Spacer()
@@ -130,6 +133,8 @@ struct ScreenshotTimelineView: View {
                     .font(.title2)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Informationen")
+            .accessibilityHint("Zeigt Tastenkürzel und Aktivitäts-Segmente")
             .popover(isPresented: $showingInfo) {
                 infoPopover
             }
@@ -200,6 +205,8 @@ struct ScreenshotTimelineView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Lade Screenshots")
     }
 
     private var emptyStateView: some View {
@@ -207,6 +214,7 @@ struct ScreenshotTimelineView: View {
             Image(systemName: "photo.on.rectangle.angled")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
 
             Text("Keine Screenshots")
                 .font(.title2)
@@ -221,10 +229,13 @@ struct ScreenshotTimelineView: View {
                     viewModel.goToToday()
                 }
                 .buttonStyle(.bordered)
+                .accessibilityHint("Wechselt zur Timeline des heutigen Tages")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Keine Screenshots für diesen Tag")
     }
 
     // MARK: - Info Popover
@@ -287,22 +298,41 @@ private struct ScreenshotPreviewView: View {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .accessibilityLabel(screenshotAccessibilityLabel)
             } else if isLoading {
                 ProgressView()
+                    .accessibilityLabel("Screenshot wird geladen")
             } else {
                 VStack {
                     Image(systemName: "photo")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
+                        .accessibilityHidden(true)
                     Text("Bild konnte nicht geladen werden")
                         .foregroundColor(.secondary)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Screenshot konnte nicht geladen werden")
             }
         }
         .background(Color.black.opacity(0.05))
         .task(id: screenshot.id) {
             await loadImage()
         }
+    }
+
+    private var screenshotAccessibilityLabel: String {
+        var label = "Screenshot"
+        if let appName = screenshot.appName {
+            label += " von \(appName)"
+        }
+        if let windowTitle = screenshot.windowTitle, !windowTitle.isEmpty {
+            label += ", Fenster: \(windowTitle)"
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        label += ", aufgenommen um \(formatter.string(from: screenshot.timestamp))"
+        return label
     }
 
     private func loadImage() async {

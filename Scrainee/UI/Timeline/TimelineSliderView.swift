@@ -20,7 +20,7 @@
 //   - TimelineNavigationButtons: Vor/Zurueck/Jump Buttons
 //   - TimelineDateNavigation: Tag-Navigation mit Kalender
 //
-// LAST UPDATED: 2026-01-20
+// LAST UPDATED: 2026-01-21
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import SwiftUI
@@ -104,6 +104,20 @@ struct TimelineSliderView: View {
             )
         }
         .frame(height: 40)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Zeit-Slider")
+        .accessibilityValue("\(Int(value * 100)) Prozent")
+        .accessibilityHint("Ziehen um durch die Timeline zu navigieren")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                value = min(1.0, value + 0.05)
+            case .decrement:
+                value = max(0.0, value - 0.05)
+            @unknown default:
+                break
+            }
+        }
     }
 
     // MARK: - Segment Visualization
@@ -149,6 +163,7 @@ struct TimelineTimeLabels: View {
             Text(dayStart.map { timeFormatter.string(from: $0) } ?? "--:--")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityLabel("Startzeit: \(dayStart.map { timeFormatter.string(from: $0) } ?? "unbekannt")")
 
             Spacer()
 
@@ -157,6 +172,7 @@ struct TimelineTimeLabels: View {
                 Text(timeFormatter.string(from: current))
                     .font(.caption)
                     .fontWeight(.medium)
+                    .accessibilityLabel("Aktuelle Zeit: \(timeFormatter.string(from: current))")
             }
 
             Spacer()
@@ -165,6 +181,7 @@ struct TimelineTimeLabels: View {
             Text(dayEnd.map { timeFormatter.string(from: $0) } ?? "--:--")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityLabel("Endzeit: \(dayEnd.map { timeFormatter.string(from: $0) } ?? "unbekannt")")
         }
     }
 }
@@ -184,6 +201,8 @@ struct TimelineNavigationButtons: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canGoPrevious)
             .help("10 Screenshots zurück (Shift+Links)")
+            .accessibilityLabel("10 zurück")
+            .accessibilityHint("Springt 10 Screenshots zurück")
 
             // Previous
             Button(action: { viewModel.goToPrevious() }) {
@@ -193,12 +212,15 @@ struct TimelineNavigationButtons: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canGoPrevious)
             .help("Vorheriger Screenshot (Links)")
+            .accessibilityLabel("Zurück")
+            .accessibilityHint("Geht zum vorherigen Screenshot")
 
             // Position indicator
             Text(viewModel.positionText)
                 .font(.system(.body, design: .monospaced))
                 .foregroundColor(.secondary)
                 .frame(minWidth: 80)
+                .accessibilityLabel("Position: \(viewModel.positionText)")
 
             // Next
             Button(action: { viewModel.goToNext() }) {
@@ -208,6 +230,8 @@ struct TimelineNavigationButtons: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canGoNext)
             .help("Nächster Screenshot (Rechts)")
+            .accessibilityLabel("Weiter")
+            .accessibilityHint("Geht zum nächsten Screenshot")
 
             // Jump forward
             Button(action: { viewModel.jumpForward() }) {
@@ -217,6 +241,8 @@ struct TimelineNavigationButtons: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canGoNext)
             .help("10 Screenshots vor (Shift+Rechts)")
+            .accessibilityLabel("10 vor")
+            .accessibilityHint("Springt 10 Screenshots vor")
         }
     }
 }
@@ -236,16 +262,21 @@ struct TimelineDateNavigation: View {
             }
             .buttonStyle(.plain)
             .help("Vorheriger Tag")
+            .accessibilityLabel("Vorheriger Tag")
+            .accessibilityHint("Wechselt zum vorherigen Tag")
 
             // Current date (clickable for date picker)
             Button(action: { showDatePicker.toggle() }) {
                 HStack(spacing: 4) {
                     Image(systemName: "calendar")
+                        .accessibilityHidden(true)
                     Text(viewModel.formattedDate)
                         .fontWeight(.medium)
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Datum: \(viewModel.formattedDate)")
+            .accessibilityHint("Öffnet Kalender zur Datumsauswahl")
             .popover(isPresented: $showDatePicker) {
                 DatePicker(
                     "Datum",
@@ -256,6 +287,7 @@ struct TimelineDateNavigation: View {
                 .datePickerStyle(.graphical)
                 .padding()
                 .frame(width: 300)
+                .accessibilityLabel("Datum auswählen")
             }
 
             // Next day
@@ -266,6 +298,8 @@ struct TimelineDateNavigation: View {
             .buttonStyle(.plain)
             .disabled(!viewModel.canGoNextDay)
             .help("Nächster Tag")
+            .accessibilityLabel("Nächster Tag")
+            .accessibilityHint("Wechselt zum nächsten Tag")
 
             // Today button
             if !Calendar.current.isDateInToday(viewModel.selectedDate) {
@@ -273,6 +307,7 @@ struct TimelineDateNavigation: View {
                     viewModel.goToToday()
                 }
                 .buttonStyle(.bordered)
+                .accessibilityHint("Wechselt zur Timeline des heutigen Tages")
             }
         }
     }
