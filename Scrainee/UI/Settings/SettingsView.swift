@@ -534,7 +534,8 @@ struct AISettingsView: View {
         }
         isSaving = false
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
             if apiKeyStatus == .saved {
                 validateKeyFormat()
             }
@@ -578,7 +579,8 @@ struct AISettingsView: View {
         apiKeyStatus = .unknown
         statusMessage = "API Key geloescht"
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
             statusMessage = nil
         }
     }

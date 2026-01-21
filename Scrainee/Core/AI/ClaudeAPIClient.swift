@@ -134,11 +134,23 @@ final class ClaudeAPIClient: Sendable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(model, forKey: .model)
             try container.encode(max_tokens, forKey: .max_tokens)
-            
+
             // Custom encoding for messages with Any type
             let messagesData = try JSONSerialization.data(withJSONObject: messages)
             let messagesJSON = try JSONSerialization.jsonObject(with: messagesData)
-            try container.encode(messagesJSON as! [[String: AnyCodable]], forKey: .messages)
+            guard let messagesArray = messagesJSON as? [[String: Any]] else {
+                throw EncodingError.invalidValue(
+                    messagesJSON,
+                    EncodingError.Context(
+                        codingPath: [CodingKeys.messages],
+                        debugDescription: "Expected [[String: Any]] but got \(type(of: messagesJSON))"
+                    )
+                )
+            }
+            let codableMessages = messagesArray.map { dict in
+                dict.mapValues { AnyCodable($0) }
+            }
+            try container.encode(codableMessages, forKey: .messages)
         }
         
         enum CodingKeys: String, CodingKey {
@@ -500,7 +512,7 @@ final class ClaudeAPIClient: Sendable {
                     let jitter = Double.random(in: 0...0.25) * delay
                     let totalDelay = delay + jitter
 
-                    print("Claude API: Retry attempt \(attempt + 1) after \(Int(totalDelay))s delay (status: \(statusCode))")
+                    FileLogger.shared.info("Retry attempt \(attempt + 1) after \(Int(totalDelay))s delay (status: \(statusCode))", context: "ClaudeAPI")
 
                     try await Task.sleep(nanoseconds: UInt64(totalDelay * 1_000_000_000))
                     continue

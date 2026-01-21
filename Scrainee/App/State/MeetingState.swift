@@ -137,7 +137,7 @@ final class MeetingState: ObservableObject {
             )
             currentMeetingDbId = try await DatabaseManager.shared.insert(dbMeeting)
         } catch {
-            print("Failed to save meeting to database: \(error)")
+            FileLogger.shared.error("Failed to save meeting to database: \(error)", context: "MeetingState")
         }
     }
 
@@ -155,7 +155,7 @@ final class MeetingState: ObservableObject {
                 try await DatabaseManager.shared.update(meeting)
             }
         } catch {
-            print("Failed to update meeting end time: \(error)")
+            FileLogger.shared.error("Failed to update meeting end time: \(error)", context: "MeetingState")
         }
     }
 
@@ -190,7 +190,7 @@ final class MeetingState: ObservableObject {
                 pageUrl: notionPage.url
             )
 
-            print("Meeting successfully synced to Notion: \(notionPage.url)")
+            FileLogger.shared.info("Meeting successfully synced to Notion: \(notionPage.url)", context: "MeetingState")
         } catch {
             onError?("Notion Sync fehlgeschlagen: \(error.localizedDescription)")
         }

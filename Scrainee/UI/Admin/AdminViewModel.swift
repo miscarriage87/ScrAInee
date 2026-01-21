@@ -223,7 +223,7 @@ class AdminViewModel: ObservableObject {
             // Delete from database
             let deletedCount = try await DatabaseManager.shared.deleteScreenshotsBefore(cutoffDate)
 
-            print("Cleaned up \(deletedCount) old screenshots")
+            FileLogger.shared.info("Cleaned up \(deletedCount) old screenshots", context: "AdminViewModel")
             await loadAllStats()
         } catch {
             errorMessage = "Bereinigung fehlgeschlagen: \(error.localizedDescription)"

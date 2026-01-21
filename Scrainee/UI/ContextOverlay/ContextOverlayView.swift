@@ -6,7 +6,6 @@
 //
 // DEPENDENCIES: AppState, MeetingDetector, DatabaseManager, MeetingSession
 // DEPENDENTS: ScraineeApp (Window-Registration), ContextOverlayWindow
-// LISTENS TO: .showSummary, .showQuickAsk (posts to NotificationCenter)
 // CHANGE IMPACT: Echtzeit-Keyword-Anzeige, Screenshot-Stats, Aufnahme-Toggle, Quick-Actions
 //
 // LAST UPDATED: 2026-01-20
@@ -356,7 +355,7 @@ final class ContextOverlayViewModel: ObservableObject {
 
             ocrWordCount = "\(words.count) Woerter"
         } catch {
-            print("Failed to load keywords: \(error)")
+            FileLogger.shared.error("Failed to load keywords: \(error)", context: "ContextOverlayView")
         }
     }
 }

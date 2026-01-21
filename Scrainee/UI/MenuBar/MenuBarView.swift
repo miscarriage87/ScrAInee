@@ -84,7 +84,7 @@ struct MenuBarView: View {
         .onAppear {
             // Aktualisiere Stats wenn das Menu geöffnet wird
             Task {
-                await appState.refreshStats()
+                await appState.captureState.refreshStats()
             }
         }
     }

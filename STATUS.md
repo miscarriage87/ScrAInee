@@ -8,6 +8,200 @@
 
 ## Kürzlich implementierte Features
 
+### Session 2026-01-20 (Update 23) - Ralph Phase 1: Unit Tests (TEST-004 bis TEST-006)
+
+#### Aufgabe
+Unit Tests für Service-Layer erstellen.
+
+#### Neue Test-Dateien
+
+| Test-Datei | Tests | Abdeckung |
+|------------|-------|-----------|
+| `KeychainServiceTests.swift` | 15 | Get/Set/Delete, Special Chars, Unicode, Multiple Keys |
+| `HotkeyManagerTests.swift` | 8 | Notification Names, Window IDs, Payloads, Singleton |
+| `PermissionManagerTests.swift` | 13 | PermissionStatus Logic, URL Validation, German Localization |
+
+#### Test Summary
+- **Gesamt-Tests:** 131
+- **Alle bestanden:** ✅
+- **Neue Tests diese Session:** 36
+
+#### Build Status
+- ✅ Build erfolgreich
+- ✅ Alle Tests bestanden
+
+---
+
+### Session 2026-01-20 (Update 22) - Ralph Phase 1: Code Cleanup (CLEAN-002 bis CLEAN-005)
+
+#### Aufgabe
+Weitere Code-Cleanup-Tasks aus dem Ralph Fix Plan abarbeiten.
+
+#### Änderungen
+
+| Task | Beschreibung | Dateien |
+|------|--------------|---------|
+| CLEAN-002 | HotkeyManager deprecated notifications entfernt | HotkeyManager.swift, ContextOverlayView.swift |
+| CLEAN-003 | ScraineeApp legacy wrapper methods entfernt | ScraineeApp.swift |
+| CLEAN-004 | 60+ print() durch FileLogger ersetzt | 18 Dateien |
+| CLEAN-005 | DispatchQueue.main → Task @MainActor | ScraineeApp.swift, SettingsView.swift |
+
+#### Details CLEAN-002
+- 5 deprecated notifications entfernt (.showQuickAsk, .showSearch, .showSummary, .showTimeline, .showMeetingMinutes)
+- Dokumentation in Dependency Header aktualisiert auf neues `.windowRequested` Pattern
+
+#### Details CLEAN-003
+- 7 legacy wrapper methods entfernt (openQuickAskWindow, openSearchWindow, etc.)
+- Interne Aufrufe auf direkte openWindow/closeWindow umgestellt
+
+#### Details CLEAN-004
+- 60+ print() statements durch FileLogger ersetzt mit korrektem Log-Level (debug/info/warning/error)
+- Neue Methode `FileLogger.log(level:message:context:)` für StartupCheckManager hinzugefügt
+- Betroffene Dateien: ProcessTapAudioCapture, AudioCaptureManager, StartupCheckManager, WhisperTranscriptionService, MeetingDetector, RetentionPolicy, HotkeyManager, PermissionManager, ScraineeApp, DisplayManager, MeetingState, ClaudeAPIClient, MeetingMinutesGenerator, ScreenCaptureManager, AdminViewModel, QuickAskView, GalleryViewModel, ContextOverlayView
+
+#### Details CLEAN-005
+- 4 asyncAfter Aufrufe durch Task + Task.sleep ersetzt
+- NSViewRepresentable Pattern in WindowAccessorView belassen (Standard-Pattern)
+
+#### Build Status
+- ✅ Build erfolgreich
+
+---
+
+### Session 2026-01-20 (Update 21) - Ralph Phase 1: Code Cleanup (CLEAN-001)
+
+#### Aufgabe
+Entfernung der backward-compatibility Wrapper aus AppState.swift.
+
+#### Änderungen
+
+| Datei | Änderung |
+|-------|----------|
+| `Scrainee/App/AppState.swift` | 127 Zeilen Wrapper-Code entfernt (Zeilen 88-213 Properties, 220-260 Methoden) |
+| `Scrainee/App/ScraineeApp.swift` | `.stopCapture()` → `.captureState.stopCapture()` |
+| `Scrainee/UI/MenuBar/MenuBarView.swift` | `.refreshStats()` → `.captureState.refreshStats()` |
+
+#### Details
+- **Entfernt:** 22 computed properties (isCapturing, screenshotCount, etc.)
+- **Entfernt:** 6 wrapper methods (toggleCapture, startCapture, stopCapture, refreshStats, generateSummary, syncCurrentMeetingToNotion)
+- **Behalten:** `checkAndUpdatePermissions()` als Koordinationsmethode zwischen UIState und CaptureState
+- **Aktualisiert:** Dependency Header dokumentiert neuen State-Zugriff
+
+#### Build Status
+- ✅ Build erfolgreich (6.40s)
+
+---
+
+### Session 2026-01-20 (Update 20) - Ralph Phase 1: Error Handling Fixes (FIX-005 to FIX-007)
+
+#### Aufgabe
+Alle kritischen Error-Handling-Probleme beheben (Data-Loss-Risiko).
+
+#### Behobene Probleme
+
+| Fix | Datei | Problem | Lösung |
+|-----|-------|---------|--------|
+| FIX-005 | `KeychainService.swift` | `try?` verschluckte Fehler | `do-catch` + FileLogger.error() |
+| FIX-006 | `FileLogger.swift` | Logging-Fehler unbemerkt + force-unwrap | stderr fallback + guard let |
+| FIX-007 | `DatabaseManager.swift:538` | Verwaiste Dateien bei Löschfehler | Warning-Log, Deletion continues |
+
+#### Geänderte Dateien
+
+| Datei | Änderung |
+|-------|----------|
+| `Scrainee/Services/KeychainService.swift` | 6 `try?` → `do-catch` mit FileLogger |
+| `Scrainee/Services/FileLogger.swift` | stderr für kritische init-Fehler, force-unwrap entfernt |
+| `Scrainee/Core/Database/DatabaseManager.swift` | Warning-Log bei Datei-Löschfehler |
+
+#### Build Status
+- ✅ Build erfolgreich (3.59s)
+
+---
+
+### Session 2026-01-20 (Update 19) - Ralph Phase 1: Force-Unwrap Fixes (FIX-001 to FIX-004)
+
+#### Aufgabe
+Alle kritischen Force-Unwraps und Force-Casts entfernen (Crash-Risiko).
+
+#### Behobene Probleme
+
+| Fix | Datei | Problem | Lösung |
+|-----|-------|---------|--------|
+| FIX-001 | `DateUtils.swift` | 3 force-unwraps in Calendar-Methoden | guard + Fallback, nil-coalescing |
+| FIX-002 | `ExportManager.swift:206` | `meeting.notionPageUrl!` | `.map { }` Pattern |
+| FIX-003 | `ClaudeAPIClient.swift:141` | `messagesJSON as!` | guard + EncodingError |
+| FIX-004 | `ScreenCaptureManager.swift:535` | `windowElement as! AXUIElement` | Dokumentiert (safe due to AX API) |
+
+#### Geänderte Dateien
+
+| Datei | Änderung |
+|-------|----------|
+| `Scrainee/Utilities/DateUtils.swift` | `endOfDay()`, `hoursAgo()`, `daysAgo()` sicher gemacht |
+| `Scrainee/Services/ExportManager.swift` | Notion URL handling mit optional map |
+| `Scrainee/Core/AI/ClaudeAPIClient.swift` | JSON encoding mit proper error handling |
+| `Scrainee/Core/ScreenCapture/ScreenCaptureManager.swift` | Dokumentation für AXUIElement cast |
+
+#### Build Status
+- ✅ Build erfolgreich (8.20s)
+
+---
+
+### Session 2026-01-20 (Update 18) - PRD → Ralph Conversion
+
+#### Aufgabe
+Konvertierung des HANDOVER-RALPH.md in das Ralph for Claude Code Format.
+
+#### Erstellte Dateien
+
+| Datei | Beschreibung |
+|-------|-------------|
+| `PROMPT.md` | Ralph-Entwicklungsanweisungen mit SCRAINEE-spezifischem Kontext |
+| `@fix_plan.md` | Priorisierte Aufgabenliste (High/Medium/Low Priority) |
+| `specs/requirements.md` | Detaillierte technische Spezifikationen |
+
+#### Inhalt der Dateien
+
+**PROMPT.md:**
+- Context für Ralph (SCRAINEE Menu-Bar App)
+- Technology Stack Übersicht
+- 5 Hauptziele (Force-Unwraps, Error-Handling, Tests, Cleanup, Accessibility)
+- 3-Phasen-Entwicklungsmodell
+- Kritische Dependency-Matrix
+- Build & Test Kommandos
+- Status-Reporting-Format
+
+**@fix_plan.md:**
+- 🔴 High Priority: 7 kritische Fixes (Force-Unwraps, Error-Handling)
+- 🟡 Medium Priority: 6 Tests + 5 Cleanups
+- 🟢 Low Priority: 9 UI/Accessibility + 2 Features
+- ✅ Completed: 14 bereits implementierte Features
+- Notes: Init-Reihenfolge, Known Limitations, File Locations
+
+**specs/requirements.md:**
+- System Overview (Platform, Tech Stack)
+- Architecture (Layer, Patterns, State Management)
+- Data Models (6 DB-Tabellen mit Schema)
+- Core Features (6 Features mit Details)
+- UI (Menu Bar, Shortcuts, Windows)
+- Security & Privacy
+- Performance Requirements
+- Testing Requirements
+- Build & Deployment
+- API Integrations
+
+#### Nächste Schritte für Ralph
+
+Ralph sollte mit **Phase 1: Critical Fixes** beginnen:
+1. FIX-001: DateUtils.swift force-unwrap
+2. FIX-002: ExportManager.swift force-unwrap
+3. FIX-003: ClaudeAPIClient.swift force-cast
+4. FIX-004: ScreenCaptureManager.swift force-cast
+5. FIX-005: KeychainService error handling
+6. FIX-006: FileLogger try? fixes
+7. FIX-007: DatabaseManager cleanup error
+
+---
+
 ### Session 2026-01-20 (Update 17) - Handover-Dokument für Ralph
 
 #### Aufgabe

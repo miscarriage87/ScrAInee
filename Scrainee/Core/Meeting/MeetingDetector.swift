@@ -217,7 +217,7 @@ final class MeetingDetector: ObservableObject {
         // Initial check
         checkForMeetings()
 
-        print("Meeting detector started")
+        FileLogger.shared.info("Meeting detector started", context: "MeetingDetector")
     }
 
     /// Stops monitoring
@@ -235,7 +235,7 @@ final class MeetingDetector: ObservableObject {
         checkTimer = nil
 
         isMonitoring = false
-        print("Meeting detector stopped")
+        FileLogger.shared.info("Meeting detector stopped", context: "MeetingDetector")
     }
 
     // MARK: - Event Handlers
@@ -244,7 +244,7 @@ final class MeetingDetector: ObservableObject {
         guard let bundleId = bundleIdentifier else { return }
 
         if meetingApps.keys.contains(bundleId) {
-            print("Meeting app launched: \(bundleId)")
+            FileLogger.shared.info("Meeting app launched: \(bundleId)", context: "MeetingDetector")
             // Check immediately for meeting status
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(2))
@@ -518,7 +518,7 @@ final class MeetingDetector: ObservableObject {
         activeMeeting = session
         currentMeetingStartTime = Date()
 
-        print("Meeting started: \(app)")
+        FileLogger.shared.info("Meeting started: \(app)", context: "MeetingDetector")
 
         // Save to database FIRST, then notify
         Task {
@@ -535,7 +535,7 @@ final class MeetingDetector: ObservableObject {
 
         meeting.endTime = Date()
 
-        print("Meeting ended: \(meeting.appName), duration: \(meeting.durationMinutes) minutes")
+        FileLogger.shared.info("Meeting ended: \(meeting.appName), duration: \(meeting.durationMinutes) minutes", context: "MeetingDetector")
 
         // Notify
         NotificationCenter.default.post(name: .meetingEnded, object: meeting)
@@ -563,7 +563,7 @@ final class MeetingDetector: ObservableObject {
         do {
             _ = try await DatabaseManager.shared.insert(meeting)
         } catch {
-            print("Failed to save meeting: \(error)")
+            FileLogger.shared.error("Failed to save meeting: \(error)", context: "MeetingDetector")
         }
     }
 
@@ -576,7 +576,7 @@ final class MeetingDetector: ObservableObject {
                 try await DatabaseManager.shared.update(meeting)
             }
         } catch {
-            print("Failed to update meeting: \(error)")
+            FileLogger.shared.error("Failed to update meeting: \(error)", context: "MeetingDetector")
         }
     }
 }

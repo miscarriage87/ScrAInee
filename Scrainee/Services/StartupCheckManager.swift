@@ -94,7 +94,7 @@ final class StartupCheckManager: ObservableObject {
         guard !isChecking else { return }
 
         isChecking = true
-        print("StartupCheckManager: Running all health checks...")
+        FileLogger.shared.info("Running all health checks...", context: "StartupCheckManager")
 
         // Run checks in parallel where possible
         await withTaskGroup(of: ServiceCheck.self) { group in
@@ -249,17 +249,28 @@ final class StartupCheckManager: ObservableObject {
     }
 
     private func printSummary() {
-        print("StartupCheckManager: Health check completed")
+        FileLogger.shared.info("Health check completed", context: "StartupCheckManager")
         for check in checkResults {
             let statusIcon: String
+            let logLevel: FileLogger.LogLevel
             switch check.status {
-            case .success: statusIcon = "✅"
-            case .warning: statusIcon = "⚠️"
-            case .error: statusIcon = "❌"
-            case .notConfigured: statusIcon = "⚪"
-            case .pending, .checking: statusIcon = "🔄"
+            case .success:
+                statusIcon = "✅"
+                logLevel = .info
+            case .warning:
+                statusIcon = "⚠️"
+                logLevel = .warning
+            case .error:
+                statusIcon = "❌"
+                logLevel = .error
+            case .notConfigured:
+                statusIcon = "⚪"
+                logLevel = .info
+            case .pending, .checking:
+                statusIcon = "🔄"
+                logLevel = .debug
             }
-            print("  \(statusIcon) \(check.service.rawValue): \(check.message)")
+            FileLogger.shared.log(level: logLevel, message: "\(statusIcon) \(check.service.rawValue): \(check.message)", context: "StartupCheckManager")
         }
     }
 }

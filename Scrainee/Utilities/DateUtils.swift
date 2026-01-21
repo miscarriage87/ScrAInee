@@ -101,15 +101,19 @@ enum DateUtils {
 
     static func endOfDay(_ date: Date = Date()) -> Date {
         let start = startOfDay(date)
-        return Calendar.current.date(byAdding: .day, value: 1, to: start)!.addingTimeInterval(-1)
+        guard let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: start) else {
+            // Fallback: Return end of current start (23:59:59)
+            return start.addingTimeInterval(86399)
+        }
+        return nextDay.addingTimeInterval(-1)
     }
 
     static func hoursAgo(_ hours: Int, from date: Date = Date()) -> Date {
-        Calendar.current.date(byAdding: .hour, value: -hours, to: date)!
+        Calendar.current.date(byAdding: .hour, value: -hours, to: date) ?? date
     }
 
     static func daysAgo(_ days: Int, from date: Date = Date()) -> Date {
-        Calendar.current.date(byAdding: .day, value: -days, to: date)!
+        Calendar.current.date(byAdding: .day, value: -days, to: date) ?? date
     }
 
     static func yesterday() -> Date {

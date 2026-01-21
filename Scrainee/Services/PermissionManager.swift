@@ -59,7 +59,7 @@ final class PermissionManager: Sendable {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
             return !content.displays.isEmpty
         } catch {
-            print("Screen capture permission request failed: \(error)")
+            FileLogger.shared.error("Screen capture permission request failed: \(error)", context: "PermissionManager")
             return false
         }
     }

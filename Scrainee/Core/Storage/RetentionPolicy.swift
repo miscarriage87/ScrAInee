@@ -62,7 +62,7 @@ actor RetentionPolicy {
             }
         }
 
-        print("Next cleanup scheduled for: \(nextCleanupDate)")
+        FileLogger.shared.info("Next cleanup scheduled for: \(nextCleanupDate)", context: "RetentionPolicy")
     }
 
     /// Sets the cleanup timer (actor-isolated)
@@ -100,7 +100,7 @@ actor RetentionPolicy {
         // Check if already running
         let shouldRun = await checkAndSetRunning()
         guard shouldRun else {
-            print("Cleanup already in progress, skipping...")
+            FileLogger.shared.debug("Cleanup already in progress, skipping...", context: "RetentionPolicy")
             return
         }
 
@@ -113,24 +113,24 @@ actor RetentionPolicy {
 
         // Skip if retention is unlimited (0)
         guard retentionDays > 0 else {
-            print("Retention is unlimited, skipping cleanup")
+            FileLogger.shared.debug("Retention is unlimited, skipping cleanup", context: "RetentionPolicy")
             return
         }
 
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
 
-        print("Starting cleanup for screenshots older than \(cutoffDate)")
+        FileLogger.shared.info("Starting cleanup for screenshots older than \(cutoffDate)", context: "RetentionPolicy")
 
         do {
             // 1. Get old screenshots
             let oldScreenshots = try await DatabaseManager.shared.getScreenshotsBefore(cutoffDate)
 
             guard !oldScreenshots.isEmpty else {
-                print("No old screenshots to clean up")
+                FileLogger.shared.debug("No old screenshots to clean up", context: "RetentionPolicy")
                 return
             }
 
-            print("Found \(oldScreenshots.count) screenshots to delete")
+            FileLogger.shared.info("Found \(oldScreenshots.count) screenshots to delete", context: "RetentionPolicy")
 
             // 2. Delete files
             var deletedCount = 0
@@ -142,7 +142,7 @@ actor RetentionPolicy {
                     deletedCount += 1
                 } catch {
                     failedCount += 1
-                    print("Failed to delete file: \(screenshot.filepath) - \(error)")
+                    FileLogger.shared.warning("Failed to delete file: \(screenshot.filepath) - \(error)", context: "RetentionPolicy")
                 }
             }
 
@@ -152,7 +152,7 @@ actor RetentionPolicy {
             // 4. Run VACUUM to reclaim space
             try await DatabaseManager.shared.vacuum()
 
-            print("Cleanup completed: \(deletedCount) files deleted, \(dbDeletedCount) DB records removed, \(failedCount) failures")
+            FileLogger.shared.info("Cleanup completed: \(deletedCount) files deleted, \(dbDeletedCount) DB records removed, \(failedCount) failures", context: "RetentionPolicy")
 
             // 5. Notify about completion
             let finalDeletedCount = deletedCount
@@ -168,7 +168,7 @@ actor RetentionPolicy {
             }
 
         } catch {
-            print("Cleanup error: \(error)")
+            FileLogger.shared.error("Cleanup error: \(error)", context: "RetentionPolicy")
         }
     }
 

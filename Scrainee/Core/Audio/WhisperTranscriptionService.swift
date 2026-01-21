@@ -238,7 +238,7 @@ final class WhisperTranscriptionService: @unchecked Sendable {
     /// Downloads the Whisper model
     func downloadModel() async throws {
         guard !isModelDownloaded else {
-            print("WhisperTranscriptionService: Model already downloaded")
+            FileLogger.shared.info("Model already downloaded", context: "WhisperTranscriptionService")
             return
         }
 
@@ -353,7 +353,7 @@ final class WhisperTranscriptionService: @unchecked Sendable {
             )
 
         } catch {
-            print("WhisperTranscriptionService: Chunk transcription failed: \(error)")
+            FileLogger.shared.error("Chunk transcription failed: \(error)", context: "WhisperTranscriptionService")
             throw TranscriptionError.transcriptionFailed(error.localizedDescription)
         }
     }

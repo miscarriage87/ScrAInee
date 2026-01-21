@@ -368,7 +368,7 @@ final class MeetingMinutesGenerator: ObservableObject {
             }
 
         } catch {
-            print("MeetingMinutesGenerator: Failed to parse action items: \(error)")
+            FileLogger.shared.error("Failed to parse action items: \(error)", context: "MeetingMinutesGenerator")
             return []
         }
     }

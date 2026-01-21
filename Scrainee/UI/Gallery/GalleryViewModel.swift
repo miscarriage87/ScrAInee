@@ -85,7 +85,7 @@ final class GalleryViewModel: ObservableObject {
             screenshots.append(contentsOf: newScreenshots)
             currentPage += 1
         } catch {
-            print("Failed to load screenshots: \(error)")
+            FileLogger.shared.error("Failed to load screenshots: \(error)", context: "GalleryViewModel")
         }
     }
 
@@ -114,7 +114,7 @@ final class GalleryViewModel: ObservableObject {
                 selectedScreenshot = nil
             }
         } catch {
-            print("Failed to delete screenshot: \(error)")
+            FileLogger.shared.error("Failed to delete screenshot: \(error)", context: "GalleryViewModel")
         }
     }
 

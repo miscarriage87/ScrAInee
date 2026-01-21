@@ -37,7 +37,12 @@ final class KeychainService: Sendable {
     // MARK: - Generic Access
 
     func get(_ key: Key) -> String? {
-        try? keychain.get(key.rawValue)
+        do {
+            return try keychain.get(key.rawValue)
+        } catch {
+            FileLogger.shared.error("Keychain get failed for '\(key.rawValue)': \(error.localizedDescription)", context: "KeychainService")
+            return nil
+        }
     }
 
     func set(_ value: String, for key: Key) throws {
@@ -49,7 +54,12 @@ final class KeychainService: Sendable {
     }
 
     func exists(_ key: Key) -> Bool {
-        (try? keychain.get(key.rawValue)) != nil
+        do {
+            return try keychain.get(key.rawValue) != nil
+        } catch {
+            FileLogger.shared.warning("Keychain exists check failed for '\(key.rawValue)': \(error.localizedDescription)", context: "KeychainService")
+            return false
+        }
     }
 
     // MARK: - Convenience Methods
@@ -57,10 +67,14 @@ final class KeychainService: Sendable {
     var claudeAPIKey: String? {
         get { get(.claudeAPIKey) }
         set {
-            if let value = newValue {
-                try? set(value, for: .claudeAPIKey)
-            } else {
-                try? remove(.claudeAPIKey)
+            do {
+                if let value = newValue {
+                    try set(value, for: .claudeAPIKey)
+                } else {
+                    try remove(.claudeAPIKey)
+                }
+            } catch {
+                FileLogger.shared.error("Failed to update claudeAPIKey: \(error.localizedDescription)", context: "KeychainService")
             }
         }
     }
@@ -68,10 +82,14 @@ final class KeychainService: Sendable {
     var notionAPIKey: String? {
         get { get(.notionAPIKey) }
         set {
-            if let value = newValue {
-                try? set(value, for: .notionAPIKey)
-            } else {
-                try? remove(.notionAPIKey)
+            do {
+                if let value = newValue {
+                    try set(value, for: .notionAPIKey)
+                } else {
+                    try remove(.notionAPIKey)
+                }
+            } catch {
+                FileLogger.shared.error("Failed to update notionAPIKey: \(error.localizedDescription)", context: "KeychainService")
             }
         }
     }
@@ -79,10 +97,14 @@ final class KeychainService: Sendable {
     var notionDatabaseId: String? {
         get { get(.notionDatabaseId) }
         set {
-            if let value = newValue {
-                try? set(value, for: .notionDatabaseId)
-            } else {
-                try? remove(.notionDatabaseId)
+            do {
+                if let value = newValue {
+                    try set(value, for: .notionDatabaseId)
+                } else {
+                    try remove(.notionDatabaseId)
+                }
+            } catch {
+                FileLogger.shared.error("Failed to update notionDatabaseId: \(error.localizedDescription)", context: "KeychainService")
             }
         }
     }

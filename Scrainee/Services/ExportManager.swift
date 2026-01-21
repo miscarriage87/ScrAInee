@@ -203,7 +203,7 @@ final class ExportManager: Sendable {
         ---
 
         **Screenshots:** \(meeting.screenshotCount ?? 0)
-        \(meeting.notionPageUrl != nil ? "**Notion:** [\(meeting.notionPageUrl!)](\(meeting.notionPageUrl!))" : "")
+        \(meeting.notionPageUrl.map { "**Notion:** [\($0)](\($0))" } ?? "")
 
         ---
 

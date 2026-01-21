@@ -532,12 +532,17 @@ actor DatabaseManager {
         guard let id = screenshot.id else {
             throw DatabaseError.queryFailed("Screenshot has no ID")
         }
-        
+
         // Also delete the file from disk
         if screenshot.fileExists {
-            try? FileManager.default.removeItem(at: screenshot.fileURL)
+            do {
+                try FileManager.default.removeItem(at: screenshot.fileURL)
+            } catch {
+                FileLogger.shared.warning("Failed to delete screenshot file at \(screenshot.fileURL.path): \(error.localizedDescription). File may be orphaned.", context: "DatabaseManager")
+                // Continue with DB deletion even if file deletion fails
+            }
         }
-        
+
         try await deleteScreenshot(id: id)
     }
 

@@ -270,7 +270,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     nonisolated func applicationWillTerminate(_ notification: Notification) {
         // Cleanup
         Task { @MainActor in
-            await AppState.shared.stopCapture()
+            await AppState.shared.captureState.stopCapture()
             HotkeyManager.shared.unregisterHotkeys()
         }
 
@@ -371,7 +371,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.openMeetingIndicatorWindow()
+                self?.openWindow("meetingindicator")
             }
         }
         windowObservers.append(meetingStartedObserver)
@@ -383,7 +383,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.closeMeetingIndicatorWindow()
+                self?.closeWindow("meetingindicator")
             }
         }
         windowObservers.append(meetingEndedObserver)
@@ -395,11 +395,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.openMeetingIndicatorWindow()
+                self?.openWindow("meetingindicator")
                 // Positioniere Fenster in Mitte-oben des Hauptbildschirms
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    self?.positionWindowCenterTop("Meeting")
-                }
+                try? await Task.sleep(for: .milliseconds(150))
+                self?.positionWindowCenterTop("Meeting")
             }
         }
         windowObservers.append(meetingDetectedObserver)
@@ -411,7 +410,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.closeMeetingIndicatorWindow()
+                self?.closeWindow("meetingindicator")
             }
         }
         windowObservers.append(meetingDismissedObserver)
@@ -420,7 +419,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Handles transcription completion: opens Meeting Minutes window and auto-syncs to Notion
     private func handleTranscriptionCompleted(_ info: TranscriptionCompletedInfo) async {
         // Open Meeting Minutes window
-        openMeetingMinutesWindow()
+        openWindow("meetingminutes")
 
         // Auto-sync to Notion if enabled
         let settings = AppState.shared.settingsState
@@ -434,20 +433,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let client = NotionClient()
 
         guard client.isConfigured else {
-            print("Notion Auto-Sync: Notion nicht konfiguriert")
+            FileLogger.shared.warning("Notion Auto-Sync: Notion nicht konfiguriert", context: "ScraineeApp")
             return
         }
 
         do {
             // Load meeting data
             guard let meeting = try await DatabaseManager.shared.getMeeting(id: meetingId) else {
-                print("Notion Auto-Sync: Meeting nicht gefunden")
+                FileLogger.shared.warning("Notion Auto-Sync: Meeting nicht gefunden", context: "ScraineeApp")
                 return
             }
 
             // Load minutes
             guard let minutes = try await DatabaseManager.shared.getMeetingMinutes(for: meetingId) else {
-                print("Notion Auto-Sync: Keine Minutes gefunden")
+                FileLogger.shared.warning("Notion Auto-Sync: Keine Minutes gefunden", context: "ScraineeApp")
                 return
             }
 
@@ -470,9 +469,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 pageUrl: page.url
             )
 
-            print("Notion Auto-Sync: Meeting erfolgreich exportiert nach \(page.url)")
+            FileLogger.shared.info("Notion Auto-Sync: Meeting erfolgreich exportiert nach \(page.url)", context: "ScraineeApp")
         } catch {
-            print("Notion Auto-Sync fehlgeschlagen: \(error.localizedDescription)")
+            FileLogger.shared.error("Notion Auto-Sync fehlgeschlagen: \(error.localizedDescription)", context: "ScraineeApp")
         }
     }
 
@@ -505,7 +504,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Generische Methode zum Öffnen eines Fensters über die WindowConfig Registry
     func openWindow(_ windowId: String) {
         guard let config = WindowConfig.registry[windowId] else {
-            print("Warning: Unknown window ID '\(windowId)'")
+            FileLogger.shared.warning("Unknown window ID '\(windowId)'", context: "ScraineeApp")
             return
         }
 
@@ -520,7 +519,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Neues Fenster erstellen über SwiftUI
             ScraineeApp.openWindowAction?(windowId)
             if config.isFloating {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(100))
                     if let window = NSApp.windows.first(where: { $0.title == config.title }) {
                         self?.configureWindowAsFloating(window)
                     }
@@ -536,14 +536,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.close()
         }
     }
-
-    // MARK: - Legacy Wrapper Methods (für Backward Compatibility)
-
-    func openQuickAskWindow() { openWindow("quickask") }
-    func openSearchWindow() { openWindow("search") }
-    func openSummaryWindow() { openWindow("summary") }
-    func openTimelineWindow() { openWindow("timeline") }
-    func openMeetingMinutesWindow() { openWindow("meetingminutes") }
-    func openMeetingIndicatorWindow() { openWindow("meetingindicator") }
-    func closeMeetingIndicatorWindow() { closeWindow("meetingindicator") }
 }

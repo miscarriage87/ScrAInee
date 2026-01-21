@@ -180,10 +180,10 @@ actor AudioCaptureManager {
                 try await startProcessTapRecording(for: meetingId, config: config)
                 activeCaptureMethod = .processTap
                 isRecording = true
-                print("[DEBUG] AudioCaptureManager: Using ProcessTap capture (macOS 14.2+)")
+                FileLogger.shared.debug("AudioCaptureManager: Using ProcessTap capture (macOS 14.2+)")
                 return
             } catch {
-                print("[WARNING] AudioCaptureManager: ProcessTap failed (\(error.localizedDescription)), falling back to ScreenCaptureKit")
+                FileLogger.shared.warning("AudioCaptureManager: ProcessTap failed (\(error.localizedDescription)), falling back to ScreenCaptureKit")
             }
         }
 
@@ -194,7 +194,7 @@ actor AudioCaptureManager {
         try await setupAudioStream(forApp: appBundleId)
         activeCaptureMethod = .screenCapture
         isRecording = true
-        print("[DEBUG] AudioCaptureManager: Using ScreenCaptureKit capture (fallback)")
+        FileLogger.shared.debug("AudioCaptureManager: Using ScreenCaptureKit capture (fallback)")
     }
 
     /// Start recording using ProcessTap API (macOS 14.2+)
@@ -336,11 +336,11 @@ actor AudioCaptureManager {
         // Erfasse Audio von ALLEN laufenden Apps
         // Dies ist zuverlässiger als app-spezifische Filter, die Audio verlieren können
         let allApps = content.applications
-        print("[DEBUG] AudioCaptureManager: Capturing audio from ALL \(allApps.count) running apps")
+        FileLogger.shared.debug("AudioCaptureManager: Capturing audio from ALL \(allApps.count) running apps")
 
         // Liste einige Apps zur Diagnose
         let appNames = allApps.prefix(10).map { $0.applicationName }.joined(separator: ", ")
-        print("[DEBUG] AudioCaptureManager: Apps include: \(appNames)...")
+        FileLogger.shared.debug("AudioCaptureManager: Apps include: \(appNames)...")
 
         let filter = SCContentFilter(display: display, including: allApps, exceptingWindows: [])
 
@@ -370,7 +370,7 @@ actor AudioCaptureManager {
 
         try await stream.startCapture()
         self.stream = stream
-        print("[DEBUG] AudioCaptureManager: Stream capture started successfully")
+        FileLogger.shared.debug("AudioCaptureManager: Stream capture started successfully")
     }
 
     /// Called by StreamOutput when audio samples are received (from CMSampleBuffer)
@@ -611,9 +611,9 @@ private final class AudioStreamOutput: NSObject, SCStreamOutput, @unchecked Send
         // Log alle 5 Sekunden (ca. 100 Callbacks bei 48kHz)
         let now = Date()
         if now.timeIntervalSince(lastLogTime) >= 5.0 {
-            print("[DEBUG] AudioStreamOutput: Callback #\(callbackCount), \(samples.count) samples, maxAmp: \(String(format: "%.4f", maxAmplitude))")
+            FileLogger.shared.debug("AudioStreamOutput: Callback #\(callbackCount), \(samples.count) samples, maxAmp: \(String(format: "%.4f", maxAmplitude))")
             if !hasAudio {
-                print("[WARNING] Audio samples are silent (maxAmp < 0.01) - ScreenCaptureKit liefert möglicherweise kein Audio")
+                FileLogger.shared.warning("Audio samples are silent (maxAmp < 0.01) - ScreenCaptureKit liefert möglicherweise kein Audio", context: "AudioStreamOutput")
             }
             lastLogTime = now
         }

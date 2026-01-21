@@ -115,13 +115,13 @@ final class DisplayManager: ObservableObject, DisplayProviding {
             displaysChangedSubject.send(availableDisplays)
 
             if isMultiMonitor {
-                print("DisplayManager: \(availableDisplays.count) Displays erkannt")
+                FileLogger.shared.info("\(availableDisplays.count) Displays erkannt", context: "DisplayManager")
                 for display in availableDisplays {
-                    print("  - \(display.displayName) (\(display.resolution))\(display.isMain ? " [Main]" : "")")
+                    FileLogger.shared.debug("  - \(display.displayName) (\(display.resolution))\(display.isMain ? " [Main]" : "")", context: "DisplayManager")
                 }
             }
         } catch {
-            print("DisplayManager: Fehler beim Enumerieren der Displays: \(error)")
+            FileLogger.shared.error("Fehler beim Enumerieren der Displays: \(error)", context: "DisplayManager")
         }
     }
 
@@ -149,7 +149,7 @@ final class DisplayManager: ObservableObject, DisplayProviding {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                print("DisplayManager: Display-Konfiguration geändert")
+                FileLogger.shared.info("Display-Konfiguration geändert", context: "DisplayManager")
                 await self?.refreshDisplays()
             }
         }

@@ -115,7 +115,7 @@ actor ProcessTapAudioCapture {
         try setupAudioEngine()
 
         isRecording = true
-        print("[DEBUG] ProcessTapAudioCapture: Recording started for meeting \(meetingId)")
+        FileLogger.shared.debug("ProcessTapAudioCapture: Recording started for meeting \(meetingId)")
     }
 
     /// Stop capturing and return audio file URL
@@ -158,7 +158,7 @@ actor ProcessTapAudioCapture {
         chunkBuffer = []
         audioFileURL = nil
 
-        print("[DEBUG] ProcessTapAudioCapture: Recording stopped")
+        FileLogger.shared.debug("ProcessTapAudioCapture: Recording stopped")
         return resultURL
     }
 
@@ -192,12 +192,12 @@ actor ProcessTapAudioCapture {
         let status = AudioHardwareCreateProcessTap(tapDescription, &tapID)
 
         guard status == noErr else {
-            print("[ERROR] ProcessTapAudioCapture: Failed to create tap, status: \(status)")
+            FileLogger.shared.error("ProcessTapAudioCapture: Failed to create tap, status: \(status)")
             throw CaptureError.tapCreationFailed(status)
         }
 
         self.tapObjectID = tapID
-        print("[DEBUG] ProcessTapAudioCapture: Created tap with ID \(tapID)")
+        FileLogger.shared.debug("ProcessTapAudioCapture: Created tap with ID \(tapID)")
 
         // Create aggregate device including the tap
         try createAggregateDevice(tapUUID: tapDescription.uuid)
@@ -263,12 +263,12 @@ actor ProcessTapAudioCapture {
         )
 
         guard status == noErr else {
-            print("[ERROR] ProcessTapAudioCapture: Failed to create aggregate device, status: \(status)")
+            FileLogger.shared.error("ProcessTapAudioCapture: Failed to create aggregate device, status: \(status)")
             throw CaptureError.aggregateDeviceFailed(status)
         }
 
         self.aggregateDeviceID = aggregateID
-        print("[DEBUG] ProcessTapAudioCapture: Created aggregate device with ID \(aggregateID)")
+        FileLogger.shared.debug("ProcessTapAudioCapture: Created aggregate device with ID \(aggregateID)")
     }
 
     private func setupAudioEngine() throws {
@@ -288,15 +288,15 @@ actor ProcessTapAudioCapture {
         )
 
         if status != noErr {
-            print("[WARNING] ProcessTapAudioCapture: Could not set aggregate device: \(status)")
+            FileLogger.shared.warning("ProcessTapAudioCapture: Could not set aggregate device: \(status)")
         }
 
         // Query actual hardware sample rate from aggregate device
         if let hwSampleRate = getDeviceSampleRate(deviceID: aggregateDeviceID) {
             config.sampleRate = hwSampleRate
-            print("[DEBUG] ProcessTapAudioCapture: Using hardware sample rate: \(hwSampleRate) Hz")
+            FileLogger.shared.debug("ProcessTapAudioCapture: Using hardware sample rate: \(hwSampleRate) Hz")
         } else {
-            print("[WARNING] ProcessTapAudioCapture: Could not query hardware sample rate, using default: \(config.sampleRate) Hz")
+            FileLogger.shared.warning("ProcessTapAudioCapture: Could not query hardware sample rate, using default: \(config.sampleRate) Hz")
         }
 
         // Create explicit capture format matching hardware
@@ -309,7 +309,7 @@ actor ProcessTapAudioCapture {
             throw CaptureError.engineSetupFailed(NSError(domain: "ProcessTapAudioCapture", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not create capture format"]))
         }
 
-        print("[DEBUG] ProcessTapAudioCapture: Using capture format: \(captureFormat)")
+        FileLogger.shared.debug("ProcessTapAudioCapture: Using capture format: \(captureFormat)")
 
         // Install tap on input node with explicit format
         engine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: captureFormat) { [weak self] buffer, time in
@@ -345,7 +345,7 @@ actor ProcessTapAudioCapture {
         do {
             try engine.start()
             self.audioEngine = engine
-            print("[DEBUG] ProcessTapAudioCapture: Audio engine started")
+            FileLogger.shared.debug("ProcessTapAudioCapture: Audio engine started")
         } catch {
             throw CaptureError.engineSetupFailed(error)
         }
@@ -362,9 +362,9 @@ actor ProcessTapAudioCapture {
         // Log every 5 seconds
         let now = Date()
         if now.timeIntervalSince(lastLogTime) >= 5.0 {
-            print("[DEBUG] ProcessTapAudioCapture: \(sampleCounter) samples, maxAmp: \(String(format: "%.4f", maxAmplitude))")
+            FileLogger.shared.debug("ProcessTapAudioCapture: \(sampleCounter) samples, maxAmp: \(String(format: "%.4f", maxAmplitude))")
             if maxAmplitude < 0.01 {
-                print("[WARNING] ProcessTapAudioCapture: Audio is silent")
+                FileLogger.shared.warning("ProcessTapAudioCapture: Audio is silent")
             }
             lastLogTime = now
         }
@@ -454,7 +454,7 @@ actor ProcessTapAudioCapture {
             do {
                 audioFile = try AVAudioFile(forWriting: audioURL, settings: format.settings)
             } catch {
-                print("[ERROR] ProcessTapAudioCapture: Could not create audio file: \(error)")
+                FileLogger.shared.error("ProcessTapAudioCapture: Could not create audio file: \(error)")
                 return
             }
         }
@@ -474,7 +474,7 @@ actor ProcessTapAudioCapture {
         do {
             try audioFile?.write(from: buffer)
         } catch {
-            print("[ERROR] ProcessTapAudioCapture: Write failed: \(error)")
+            FileLogger.shared.error("ProcessTapAudioCapture: Write failed: \(error)")
         }
     }
 

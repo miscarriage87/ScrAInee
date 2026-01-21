@@ -89,7 +89,11 @@ final class FileLogger: @unchecked Sendable {
 
         // Setup log file
         let logsDirectory = StorageManager.shared.appSupportDirectory.appendingPathComponent("logs")
-        try? FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: logsDirectory, withIntermediateDirectories: true)
+        } catch {
+            fputs("[FileLogger] CRITICAL: Failed to create logs directory: \(error.localizedDescription)\n", stderr)
+        }
 
         let dateString = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
             .replacingOccurrences(of: "/", with: "-")
@@ -101,8 +105,13 @@ final class FileLogger: @unchecked Sendable {
         }
 
         // Open file handle
-        fileHandle = try? FileHandle(forWritingTo: logFileURL)
-        fileHandle?.seekToEndOfFile()
+        do {
+            fileHandle = try FileHandle(forWritingTo: logFileURL)
+            fileHandle?.seekToEndOfFile()
+        } catch {
+            fileHandle = nil
+            fputs("[FileLogger] WARNING: Failed to open log file for writing: \(error.localizedDescription)\n", stderr)
+        }
 
         // Log startup
         info("Scrainee FileLogger initialized", context: "FileLogger")
@@ -138,6 +147,11 @@ final class FileLogger: @unchecked Sendable {
     func log(error: Error, context: String = "App", file: String = #file, function: String = #function, line: Int = #line) {
         let message = "\(error.localizedDescription)"
         log(message, level: .error, context: context, file: file, function: function, line: line)
+    }
+
+    /// Logs with a specific level
+    func log(level: LogLevel, message: String, context: String = "App", file: String = #file, function: String = #function, line: Int = #line) {
+        log(message, level: level, context: context, file: file, function: function, line: line)
     }
 
     // MARK: - Core Logging
@@ -189,12 +203,23 @@ final class FileLogger: @unchecked Sendable {
 
     private func rotateLogFile() {
         // Close current file
-        try? fileHandle?.close()
+        do {
+            try fileHandle?.close()
+        } catch {
+            fputs("[FileLogger] WARNING: Failed to close log file during rotation: \(error.localizedDescription)\n", stderr)
+        }
 
         // Rename to backup
         let backupURL = logFileURL.deletingPathExtension().appendingPathExtension("backup.log")
-        try? FileManager.default.removeItem(at: backupURL)
-        try? FileManager.default.moveItem(at: logFileURL, to: backupURL)
+        do {
+            // Remove existing backup if present
+            if FileManager.default.fileExists(atPath: backupURL.path) {
+                try FileManager.default.removeItem(at: backupURL)
+            }
+            try FileManager.default.moveItem(at: logFileURL, to: backupURL)
+        } catch {
+            fputs("[FileLogger] WARNING: Failed to rotate log file: \(error.localizedDescription)\n", stderr)
+        }
 
         // Create new file
         FileManager.default.createFile(atPath: logFileURL.path, contents: nil)
@@ -239,18 +264,27 @@ final class FileLogger: @unchecked Sendable {
     func cleanupOldLogs() {
         let logsDirectory = StorageManager.shared.appSupportDirectory.appendingPathComponent("logs")
 
-        guard let logFiles = try? FileManager.default.contentsOfDirectory(at: logsDirectory, includingPropertiesForKeys: [.creationDateKey]) else {
+        let logFiles: [URL]
+        do {
+            logFiles = try FileManager.default.contentsOfDirectory(at: logsDirectory, includingPropertiesForKeys: [.creationDateKey])
+        } catch {
+            warning("Failed to list log files for cleanup: \(error.localizedDescription)", context: "Logger")
             return
         }
 
-        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        guard let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) else {
+            return
+        }
 
         for logFile in logFiles {
-            if let attributes = try? FileManager.default.attributesOfItem(atPath: logFile.path),
-               let creationDate = attributes[.creationDate] as? Date,
-               creationDate < sevenDaysAgo {
-                try? FileManager.default.removeItem(at: logFile)
-                info("Deleted old log file: \(logFile.lastPathComponent)", context: "Logger")
+            do {
+                let attributes = try FileManager.default.attributesOfItem(atPath: logFile.path)
+                if let creationDate = attributes[.creationDate] as? Date, creationDate < sevenDaysAgo {
+                    try FileManager.default.removeItem(at: logFile)
+                    info("Deleted old log file: \(logFile.lastPathComponent)", context: "Logger")
+                }
+            } catch {
+                warning("Failed to cleanup log file \(logFile.lastPathComponent): \(error.localizedDescription)", context: "Logger")
             }
         }
     }

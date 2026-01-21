@@ -263,7 +263,7 @@ final class QuickAskViewModel: ObservableObject {
             // Generate suggestions based on context
             updateSuggestions()
         } catch {
-            print("Failed to load context: \(error)")
+            FileLogger.shared.error("Failed to load context: \(error)", context: "QuickAskView")
         }
     }
 

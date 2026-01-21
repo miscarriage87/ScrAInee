@@ -389,7 +389,7 @@ final class ScreenCaptureManager: ObservableObject {
 
         } catch {
             // Log error but don't stop other displays from capturing
-            print("Fehler beim Erfassen von Display \(display.displayID): \(error.localizedDescription)")
+            FileLogger.shared.error("Fehler beim Erfassen von Display \(display.displayID): \(error.localizedDescription)", context: "ScreenCaptureManager")
         }
     }
 
@@ -530,9 +530,12 @@ final class ScreenCaptureManager: ObservableObject {
             return nil
         }
 
+        // AXUIElement is toll-free bridged with CFTypeRef, but we cast safely
+        let axElement = windowElement as! AXUIElement  // Safe: AXUIElementCopyAttributeValue always returns AXUIElement for kAXFocusedWindowAttribute
+
         var title: CFTypeRef?
         let titleResult = AXUIElementCopyAttributeValue(
-            windowElement as! AXUIElement,
+            axElement,
             kAXTitleAttribute as CFString,
             &title
         )

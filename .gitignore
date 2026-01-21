@@ -61,3 +61,12 @@ logs/
 
 # Claude Code
 .claude/
+.call_count
+.circuit_breaker_*
+.claude_session_id
+.exit_signals
+.last_reset
+.ralph_session
+.response_analysis
+progress.json
+status.json

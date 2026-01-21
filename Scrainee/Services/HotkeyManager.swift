@@ -34,11 +34,11 @@
 // ┌─────────────────────────────────┬──────────────────────┬─────────────────────────────────┐
 // │ Notification Name               │ Tastenkuerzel        │ Erwartete Aktion                │
 // ├─────────────────────────────────┼──────────────────────┼─────────────────────────────────┤
-// │ .showQuickAsk                   │ Cmd+Shift+A          │ Quick Ask Window oeffnen        │
-// │ .showSearch                     │ Cmd+Shift+F          │ Search Window oeffnen           │
-// │ .showSummary                    │ Cmd+Shift+S          │ Summary Request Window oeffnen  │
-// │ .showTimeline                   │ Cmd+Shift+T          │ Timeline Window oeffnen         │
-// │ .showMeetingMinutes             │ Cmd+Shift+M          │ Meeting Minutes Window oeffnen  │
+// │ .windowRequested                │ Cmd+Shift+A          │ Quick Ask (windowId: "quickask")│
+// │ .windowRequested                │ Cmd+Shift+F          │ Search (windowId: "search")     │
+// │ .windowRequested                │ Cmd+Shift+S          │ Summary (windowId: "summary")   │
+// │ .windowRequested                │ Cmd+Shift+T          │ Timeline (windowId: "timeline") │
+// │ .windowRequested                │ Cmd+Shift+M          │ Minutes (windowId: "meetingminutes")│
 // └─────────────────────────────────┴──────────────────────┴─────────────────────────────────┘
 //
 // HINWEIS: Cmd+Shift+R (Toggle Capture) ruft direkt AppState.shared.captureState.toggleCapture()
@@ -49,13 +49,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 //   - ScraineeApp.swift:
-//     * .onReceive(NotificationCenter.default.publisher(for: .showQuickAsk))
-//     * .onReceive(NotificationCenter.default.publisher(for: .showSearch))
-//     * .onReceive(NotificationCenter.default.publisher(for: .showSummary))
-//     * .onReceive(NotificationCenter.default.publisher(for: .showTimeline))
-//     * .onReceive(NotificationCenter.default.publisher(for: .showMeetingMinutes))
-//
-//   - ContextOverlayView.swift: Ebenfalls Listener fuer einige Notifications
+//     * .onReceive(NotificationCenter.default.publisher(for: .windowRequested))
+//       → Liest windowId aus userInfo und öffnet entsprechendes Fenster
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHANGE IMPACT:
@@ -106,7 +101,7 @@ final class HotkeyManager {
     func registerHotkeys() {
         // Only register if accessibility permission is granted
         guard PermissionManager.shared.checkAccessibilityPermission() else {
-            print("Hotkeys require accessibility permission")
+            FileLogger.shared.warning("Hotkeys require accessibility permission", context: "HotkeyManager")
             return
         }
 
@@ -151,7 +146,7 @@ final class HotkeyManager {
         // Cmd+Shift+M: Meeting Minutes
         registerHotkey(id: .meetingMinutes, keyCode: UInt32(kVK_ANSI_M), modifiers: UInt32(cmdKey | shiftKey))
 
-        print("Global hotkeys registered")
+        FileLogger.shared.info("Global hotkeys registered", context: "HotkeyManager")
     }
 
     /// Unregisters all hotkeys
@@ -187,7 +182,7 @@ final class HotkeyManager {
         if status == noErr {
             hotKeyRefs.append(hotKeyRef)
         } else {
-            print("Failed to register hotkey \(id): \(status)")
+            FileLogger.shared.error("Failed to register hotkey \(id): \(status)", context: "HotkeyManager")
         }
     }
 
@@ -233,19 +228,8 @@ final class HotkeyManager {
 // MARK: - Notification Names
 
 extension Notification.Name {
-    /// Generische Window-Request Notification (ersetzt individuelle show* Notifications)
+    /// Generische Window-Request Notification
     /// userInfo: ["windowId": String] - Window ID aus WindowConfig.registry
+    /// Beispiel: NotificationCenter.default.post(name: .windowRequested, object: nil, userInfo: ["windowId": "quickask"])
     static let windowRequested = Notification.Name("com.scrainee.windowRequested")
-
-    // MARK: - Legacy Notifications (deprecated, für Backward Compatibility)
-    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
-    static let showQuickAsk = Notification.Name("com.scrainee.showQuickAsk")
-    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
-    static let showSearch = Notification.Name("com.scrainee.showSearch")
-    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
-    static let showSummary = Notification.Name("com.scrainee.showSummary")
-    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
-    static let showTimeline = Notification.Name("com.scrainee.showTimeline")
-    @available(*, deprecated, message: "Use .windowRequested with userInfo instead")
-    static let showMeetingMinutes = Notification.Name("com.scrainee.showMeetingMinutes")
 }

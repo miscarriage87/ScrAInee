@@ -54,10 +54,10 @@
 // │ CHANGE IMPACT                                                               │
 // ├─────────────────────────────────────────────────────────────────────────────┤
 // │ • Sub-State-Objekte: Änderungen an CaptureState/MeetingState/etc.           │
-// │ • Backward-Compatibility: Computed Properties leiten auf Sub-States um      │
 // │ • initializeApp(): Reihenfolge kritisch (DB → Whisper → Capture → Meeting)  │
 // │ • ScreenCaptureManagerDelegate: Callback-Signatur nicht ändern              │
 // │ • Notification.Name Extensions: Von MeetingDetector, Coordinator genutzt    │
+// │ • State-Zugriff: Nutze appState.captureState/meetingState/settingsState     │
 // └─────────────────────────────────────────────────────────────────────────────┘
 //
 // LAST UPDATED: 2026-01-20
@@ -84,133 +84,6 @@ final class AppState: ObservableObject {
 
     /// State for transient UI-related properties
     @Published var uiState = UIState()
-
-    // MARK: - Backward Compatibility (wird nach vollständiger Migration entfernt)
-
-    /// Whether screen capture is currently active
-    var isCapturing: Bool {
-        get { captureState.isCapturing }
-        set { captureState.isCapturing = newValue }
-    }
-
-    /// Total number of screenshots taken this session
-    var screenshotCount: Int {
-        get { captureState.screenshotCount }
-        set { captureState.screenshotCount = newValue }
-    }
-
-    /// Total screenshots in database
-    var totalScreenshots: Int {
-        get { captureState.totalScreenshots }
-        set { captureState.totalScreenshots = newValue }
-    }
-
-    /// Current storage usage formatted string
-    var storageUsed: String {
-        get { captureState.storageUsed }
-        set { captureState.storageUsed = newValue }
-    }
-
-    /// Timestamp of last screenshot
-    var lastCaptureTime: Date? {
-        get { captureState.lastCaptureTime }
-        set { captureState.lastCaptureTime = newValue }
-    }
-
-    /// Current capture interval in seconds
-    var captureInterval: Int {
-        get { settingsState.captureInterval }
-        set { settingsState.captureInterval = newValue }
-    }
-
-    /// Name of currently active application
-    var currentApp: String {
-        get { captureState.currentApp }
-        set { captureState.currentApp = newValue }
-    }
-
-    /// Whether a meeting is currently detected
-    var isMeetingActive: Bool {
-        get { meetingState.isMeetingActive }
-        set { meetingState.isMeetingActive = newValue }
-    }
-
-    /// Current meeting session if any
-    var currentMeeting: MeetingSession? {
-        get { meetingState.currentMeeting }
-        set { meetingState.currentMeeting = newValue }
-    }
-
-    /// Show permission alert
-    var showPermissionAlert: Bool {
-        get { uiState.showPermissionAlert }
-        set { uiState.showPermissionAlert = newValue }
-    }
-
-    /// Current summary being generated
-    var isGeneratingSummary: Bool {
-        get { meetingState.isGeneratingSummary }
-        set { meetingState.isGeneratingSummary = newValue }
-    }
-
-    /// Last generated summary
-    var lastSummary: Summary? {
-        get { meetingState.lastSummary }
-        set { meetingState.lastSummary = newValue }
-    }
-
-    /// Error message to display
-    var errorMessage: String? {
-        get { uiState.errorMessage }
-        set { uiState.errorMessage = newValue }
-    }
-
-    // MARK: - Settings Backward Compatibility
-
-    var storedCaptureInterval: Int {
-        get { settingsState.captureInterval }
-        set { settingsState.captureInterval = newValue }
-    }
-
-    var retentionDays: Int {
-        get { settingsState.retentionDays }
-        set { settingsState.retentionDays = newValue }
-    }
-
-    var ocrEnabled: Bool {
-        get { settingsState.ocrEnabled }
-        set { settingsState.ocrEnabled = newValue }
-    }
-
-    var meetingDetectionEnabled: Bool {
-        get { settingsState.meetingDetectionEnabled }
-        set { settingsState.meetingDetectionEnabled = newValue }
-    }
-
-    var launchAtLogin: Bool {
-        get { settingsState.launchAtLogin }
-        set { settingsState.launchAtLogin = newValue }
-    }
-
-    var heicQuality: Double {
-        get { settingsState.heicQuality }
-        set { settingsState.heicQuality = newValue }
-    }
-
-    var notionEnabled: Bool {
-        get { settingsState.notionEnabled }
-        set { settingsState.notionEnabled = newValue }
-    }
-
-    var notionAutoSync: Bool {
-        get { settingsState.notionAutoSync }
-        set { settingsState.notionAutoSync = newValue }
-    }
-
-    var autoStartCapture: Bool {
-        get { settingsState.autoStartCapture }
-        set { settingsState.autoStartCapture = newValue }
-    }
 
     // MARK: - Private Properties
 
@@ -344,28 +217,10 @@ final class AppState: ObservableObject {
         meetingState.notionAutoSync = settingsState.notionAutoSync
     }
 
-    // MARK: - Capture Control (Backward Compatibility)
+    // MARK: - Coordination Methods
 
-    func toggleCapture() {
-        captureState.toggleCapture()
-    }
-
-    func startCapture() async {
-        await captureState.startCapture()
-    }
-
-    func stopCapture() async {
-        await captureState.stopCapture()
-    }
-
-    // MARK: - Stats (Backward Compatibility)
-
-    func refreshStats() async {
-        await captureState.refreshStats()
-    }
-
-    // MARK: - Permission Management (Backward Compatibility)
-
+    /// Checks permissions and updates UI state accordingly.
+    /// This method coordinates between UIState and CaptureState.
     func checkAndUpdatePermissions() async {
         await uiState.checkAndUpdatePermissions(
             isCapturing: captureState.isCapturing,
@@ -373,17 +228,6 @@ final class AppState: ObservableObject {
                 await self?.captureState.stopCapture()
             }
         )
-    }
-
-    // MARK: - Summary Generation (Backward Compatibility)
-
-    func generateSummary(from startTime: Date, to endTime: Date) async {
-        await meetingState.generateSummary(from: startTime, to: endTime)
-    }
-
-    /// Manually sync a meeting to Notion
-    func syncCurrentMeetingToNotion() async {
-        await meetingState.syncCurrentMeetingToNotion()
     }
 }
 
