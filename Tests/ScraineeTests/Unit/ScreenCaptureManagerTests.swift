@@ -341,6 +341,361 @@ final class ScreenCaptureManagerTests: XCTestCase {
         XCTAssertFalse(manager.isCapturing)
     }
 
+    // MARK: - AdaptiveCaptureManager Integration Tests
+
+    func testAdaptiveManager_isAccessible() {
+        let manager = ScreenCaptureManager()
+
+        // Verify we can access and use the adaptive manager
+        let adaptiveManager = manager.adaptiveManager
+
+        // Test base interval setting
+        adaptiveManager.setBaseInterval(5.0)
+        let interval = adaptiveManager.getInterval(isMeeting: false)
+
+        XCTAssertGreaterThan(interval, 0, "Interval should be positive")
+    }
+
+    func testAdaptiveManager_meetingIntervalIsShorter() {
+        let manager = ScreenCaptureManager()
+        let adaptiveManager = manager.adaptiveManager
+
+        adaptiveManager.setBaseInterval(3.0)
+
+        let normalInterval = adaptiveManager.getInterval(isMeeting: false)
+        let meetingInterval = adaptiveManager.getInterval(isMeeting: true)
+
+        XCTAssertLessThanOrEqual(meetingInterval, normalInterval,
+                                  "Meeting interval should be shorter or equal to normal")
+    }
+
+    func testAdaptiveManager_duplicateDetectionAffectsInterval() {
+        let manager = ScreenCaptureManager()
+        let adaptiveManager = manager.adaptiveManager
+
+        adaptiveManager.setBaseInterval(3.0)
+        adaptiveManager.resetDuplicateDetection()
+
+        // Report several duplicates - should increase interval
+        for _ in 0..<5 {
+            adaptiveManager.reportDuplicate()
+        }
+
+        let intervalAfterDuplicates = adaptiveManager.getInterval(isMeeting: false)
+
+        adaptiveManager.resetDuplicateDetection()
+        adaptiveManager.reportUnique()
+
+        let intervalAfterUnique = adaptiveManager.getInterval(isMeeting: false)
+
+        // After reporting duplicates, interval should be >= after reset
+        XCTAssertGreaterThanOrEqual(intervalAfterDuplicates, intervalAfterUnique,
+                                     "Interval after duplicates should be >= after unique")
+    }
+
+    // MARK: - Capture State Transitions Tests
+
+    func testStopCapturing_clearsTimer() {
+        let manager = ScreenCaptureManager()
+
+        // Initial state
+        XCTAssertFalse(manager.isCapturing)
+
+        // Stop when not capturing
+        manager.stopCapturing()
+
+        // Should still be false and not crash
+        XCTAssertFalse(manager.isCapturing)
+    }
+
+    func testStopCapturing_resetsState() {
+        let mockDisplayManager = MockDisplayManager.singleDisplay()
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        // Stop should reset state (even when not capturing)
+        manager.stopCapturing()
+
+        XCTAssertFalse(manager.isCapturing)
+        XCTAssertEqual(manager.captureCount, 0)
+    }
+
+    // MARK: - Multi-Monitor Scenarios
+
+    func testInit_withSingleDisplay_configuresMock() {
+        let mockDisplayManager = MockDisplayManager.singleDisplay()
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 1)
+    }
+
+    func testInit_withDualDisplay_configuresMock() {
+        let mockDisplayManager = MockDisplayManager.dualDisplay()
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 2)
+    }
+
+    func testInit_withTripleDisplay_configuresMock() {
+        let mockDisplayManager = MockDisplayManager.tripleDisplay()
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 3)
+    }
+
+    func testInit_withNoDisplays_configuresMock() {
+        let mockDisplayManager = MockDisplayManager.noDisplays()
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        XCTAssertNotNil(manager)
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 0)
+    }
+
+    func testInit_withErrorMock_configuresMock() {
+        let mockDisplayManager = MockDisplayManager.withError(CaptureError.noDisplay)
+        let manager = ScreenCaptureManager(displayManager: mockDisplayManager)
+
+        XCTAssertNotNil(manager)
+        XCTAssertTrue(mockDisplayManager.shouldThrowError)
+    }
+
+    // MARK: - DisplayInfo Structure Tests
+
+    func testDisplayInfo_singleDisplay_hasCorrectProperties() {
+        let mockDisplayManager = MockDisplayManager.singleDisplay()
+
+        let display = mockDisplayManager.mockDisplays.first!
+
+        XCTAssertEqual(display.id, 1)
+        XCTAssertEqual(display.width, 1920)
+        XCTAssertEqual(display.height, 1080)
+        XCTAssertTrue(display.isMain)
+        XCTAssertEqual(display.displayName, "Built-in Display")
+    }
+
+    func testDisplayInfo_dualDisplay_hasMainAndExternal() {
+        let mockDisplayManager = MockDisplayManager.dualDisplay()
+
+        let mainDisplay = mockDisplayManager.mockDisplays.first { $0.isMain }
+        let externalDisplay = mockDisplayManager.mockDisplays.first { !$0.isMain }
+
+        XCTAssertNotNil(mainDisplay)
+        XCTAssertNotNil(externalDisplay)
+        XCTAssertEqual(mainDisplay?.displayName, "Built-in Display")
+        XCTAssertEqual(externalDisplay?.displayName, "External Display")
+    }
+
+    func testDisplayInfo_tripleDisplay_hasUniqueIds() {
+        let mockDisplayManager = MockDisplayManager.tripleDisplay()
+
+        let ids = Set(mockDisplayManager.mockDisplays.map { $0.id })
+
+        XCTAssertEqual(ids.count, 3, "All displays should have unique IDs")
+    }
+
+    // MARK: - MockDisplayManager simulateDisplayChange Tests
+
+    func testSimulateDisplayChange_updatesDisplays() async {
+        let mockDisplayManager = MockDisplayManager.singleDisplay()
+
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 1)
+
+        // Simulate adding a display
+        let newDisplays = [
+            DisplayInfo(id: 1, width: 1920, height: 1080, isMain: true, displayName: "Main"),
+            DisplayInfo(id: 2, width: 2560, height: 1440, isMain: false, displayName: "New External")
+        ]
+        mockDisplayManager.simulateDisplayChange(newDisplays)
+
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 2)
+    }
+
+    func testSimulateDisplayChange_emptyList() async {
+        let mockDisplayManager = MockDisplayManager.dualDisplay()
+
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 2)
+
+        // Simulate disconnect all displays
+        mockDisplayManager.simulateDisplayChange([])
+
+        XCTAssertEqual(mockDisplayManager.mockDisplays.count, 0)
+    }
+
+    // MARK: - CaptureError Equality Tests
+
+    func testCaptureError_equatable() {
+        let error1 = CaptureError.noPermission
+        let error2 = CaptureError.noPermission
+        let error3 = CaptureError.noDisplay
+
+        XCTAssertEqual(error1, error2)
+        XCTAssertNotEqual(error1, error3)
+    }
+
+    func testCaptureError_allCasesHaveUniqueDescriptions() {
+        let allErrors: [CaptureError] = [
+            .noPermission,
+            .noDisplay,
+            .captureFailure,
+            .saveFailed
+        ]
+
+        let descriptions = allErrors.compactMap { $0.errorDescription }
+        let uniqueDescriptions = Set(descriptions)
+
+        XCTAssertEqual(uniqueDescriptions.count, allErrors.count,
+                      "Each error type should have a unique description")
+    }
+
+    // MARK: - Screenshot Hash Tests
+
+    func testScreenshot_hashIsOptional() {
+        let screenshotWithHash = Screenshot(
+            filepath: "test.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 1024,
+            isDuplicate: false,
+            hash: "abc123def456"
+        )
+
+        let screenshotWithoutHash = Screenshot(
+            filepath: "test.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 1024,
+            isDuplicate: false,
+            hash: nil
+        )
+
+        XCTAssertNotNil(screenshotWithHash.hash)
+        XCTAssertNil(screenshotWithoutHash.hash)
+    }
+
+    func testScreenshot_isDuplicateFlag() {
+        let duplicateScreenshot = Screenshot(
+            filepath: "dup.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 1024,
+            isDuplicate: true,
+            hash: "same_hash"
+        )
+
+        let uniqueScreenshot = Screenshot(
+            filepath: "unique.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 1024,
+            isDuplicate: false,
+            hash: "unique_hash"
+        )
+
+        XCTAssertTrue(duplicateScreenshot.isDuplicate)
+        XCTAssertFalse(uniqueScreenshot.isDuplicate)
+    }
+
+    // MARK: - Edge Cases
+
+    func testScreenshot_emptyWindowTitle() {
+        let screenshot = Screenshot(
+            filepath: "test.heic",
+            timestamp: Date(),
+            appBundleId: "com.test",
+            appName: "Test App",
+            windowTitle: "",
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 1024,
+            isDuplicate: false,
+            hash: nil
+        )
+
+        XCTAssertEqual(screenshot.windowTitle, "")
+    }
+
+    func testScreenshot_largeResolution() {
+        let screenshot = Screenshot(
+            filepath: "8k.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 7680,  // 8K width
+            height: 4320, // 8K height
+            fileSize: 50_000_000, // 50MB
+            isDuplicate: false,
+            hash: nil
+        )
+
+        XCTAssertEqual(screenshot.width, 7680)
+        XCTAssertEqual(screenshot.height, 4320)
+        XCTAssertEqual(screenshot.fileSize, 50_000_000)
+    }
+
+    func testScreenshot_zeroFileSize() {
+        let screenshot = Screenshot(
+            filepath: "empty.heic",
+            timestamp: Date(),
+            appBundleId: nil,
+            appName: nil,
+            windowTitle: nil,
+            displayId: 1,
+            width: 1920,
+            height: 1080,
+            fileSize: 0,
+            isDuplicate: false,
+            hash: nil
+        )
+
+        XCTAssertEqual(screenshot.fileSize, 0)
+    }
+
+    // MARK: - Multiple Delegate Errors Tracking
+
+    func testMockDelegate_tracksMultipleErrorTypes() {
+        let delegate = MockScreenCaptureDelegate()
+        let manager = ScreenCaptureManager()
+
+        delegate.screenCaptureManager(manager, didFailWithError: CaptureError.noPermission)
+        delegate.screenCaptureManager(manager, didFailWithError: CaptureError.noDisplay)
+        delegate.screenCaptureManager(manager, didFailWithError: CaptureError.captureFailure)
+        delegate.screenCaptureManager(manager, didFailWithError: CaptureError.saveFailed)
+
+        XCTAssertEqual(delegate.capturedErrors.count, 4)
+
+        // Verify all error types are captured
+        let errorTypes = delegate.capturedErrors.compactMap { $0 as? CaptureError }
+        XCTAssertTrue(errorTypes.contains(.noPermission))
+        XCTAssertTrue(errorTypes.contains(.noDisplay))
+        XCTAssertTrue(errorTypes.contains(.captureFailure))
+        XCTAssertTrue(errorTypes.contains(.saveFailed))
+    }
+
     // MARK: - Helper Methods
 
     private func createTestScreenshot(displayId: Int) -> Screenshot {

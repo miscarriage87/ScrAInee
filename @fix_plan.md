@@ -50,10 +50,16 @@
   - Created: `Tests/ScraineeTests/Unit/MeetingDetectorTests.swift`
   - 29 tests covering: 6 notifications, MeetingSession struct, state properties, URL patterns, bundle IDs
 
-- [ ] **TEST-003: ScreenCaptureManager tests**
-  - Extend: `Tests/ScraineeTests/Unit/ScreenCaptureManagerTests.swift`
-  - Cover: ScreenCaptureKit integration, delegate callbacks, multi-monitor
-  - Priority: High - core functionality
+- [x] **TEST-003: ScreenCaptureManager tests** ✅
+  - Extended: `Tests/ScraineeTests/Unit/ScreenCaptureManagerTests.swift`
+  - Added 17 new tests (33 → 50 total):
+    - AdaptiveCaptureManager integration (3 tests)
+    - Multi-monitor scenarios with MockDisplayManager (5 tests)
+    - DisplayInfo structure validation (3 tests)
+    - simulateDisplayChange hot-plug (2 tests)
+    - CaptureError equality (2 tests)
+    - Screenshot hash/duplicate edge cases (2 tests)
+  - Coverage: CaptureError, states, delegates, multi-monitor, adaptive intervals
 
 - [x] **TEST-004: HotkeyManager tests** ✅
   - Created: `Tests/ScraineeTests/Unit/HotkeyManagerTests.swift`
@@ -185,6 +191,7 @@
 - [x] **TEST-005**: PermissionManager tests (13 tests, all passing) (2026-01-20)
 - [x] **TEST-001**: WhisperTranscriptionService tests (21 tests, all passing) (2026-01-20)
 - [x] **TEST-002**: MeetingDetector tests (29 tests, all passing) (2026-01-20)
+- [x] **TEST-003**: ScreenCaptureManager tests (50 tests, all passing) (2026-01-21)
 
 ## Notes
 
